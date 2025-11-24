@@ -3,3 +3,7 @@ a config.txt file should be created in Knowledge Graph DB folder with only the n
 URI=neo4j://127.0.0.1:7687 #should be replaced with correct URI
 USERNAME=<username> #replace with correct value
 PASSWORD=<password> #replace with correct value
+
+In terminal before running project run:
+1: py -m pip install neo4j
+2: py -m pip install pandas

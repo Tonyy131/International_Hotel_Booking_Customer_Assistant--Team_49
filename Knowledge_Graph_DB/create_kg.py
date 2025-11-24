@@ -106,6 +106,15 @@ def load_reviews(driver):
                 "hotel_id": row['hotel_id']
             })
 
+def compute_average_review_scores(driver):
+    with driver.session() as session:
+        session.run("""
+            MATCH (h:Hotel)<-[:REVIEWED]-(r:Review)
+            WITH h, avg(r.score_overall) AS avgScore
+            SET h.average_reviews_score = avgScore
+        """)
+
+
 def load_visa(driver):
     visas = pd.read_csv("visa.csv")
 
@@ -145,6 +154,7 @@ def main():
     load_travellers(driver)
     load_hotels(driver)
     load_reviews(driver)
+    compute_average_review_scores(driver)
     load_visa(driver)
 
     driver.close()
