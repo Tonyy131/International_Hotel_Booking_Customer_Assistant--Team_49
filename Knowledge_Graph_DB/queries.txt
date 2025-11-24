@@ -1,0 +1,45 @@
+Query 1
+
+MATCH (t:Traveller)-[:STAYED_AT]->(h:Hotel)
+MATCH (h)-[:LOCATED_IN]->(:City)-[:LOCATED_IN]->(dest:Country)
+MATCH (t)-[:FROM_COUNTRY]->(home:Country)
+WHERE NOT (home)-[:NEEDS_VISA]->(dest) OR home.name = dest.name
+RETURN count(DISTINCT t) AS travellers_no_visa;
+
+
+Query 2 
+
+MATCH (t:Traveller {type:"Business"})-[:WROTE]->(r:Review)-[:REVIEWED]->(h:Hotel)
+WITH h.name AS hotel, avg(r.score_overall) AS avg_score
+RETURN hotel, avg_score
+ORDER BY avg_score DESC
+LIMIT 3;
+
+
+Query 3
+
+MATCH (h:Hotel)
+OPTIONAL MATCH (t:Traveller {type:"Couple"})-[:STAYED_AT]->(h)
+WITH h.name AS hotel, count(t) AS couple_count
+RETURN hotel, couple_count
+ORDER BY hotel ASC;
+
+Query 4
+
+MATCH (r:Review)-[:REVIEWED]->(h:Hotel)
+WITH h.name AS hotel, avg(r.score_cleanliness) AS avg_clean
+WHERE avg_clean < 8.8
+RETURN hotel, avg_clean
+ORDER BY avg_clean ASC
+LIMIT 3;
+
+Query 5
+
+MATCH (t:Traveller {gender: "Female"})-[:WROTE]->(r:Review)-[:REVIEWED]->(h:Hotel)
+WITH h, AVG(r.score_location) AS avg_location
+WITH MAX(avg_location) AS max_score
+
+MATCH (t2:Traveller {gender: "Female"})-[:WROTE]->(r2:Review)-[:REVIEWED]->(h2:Hotel)
+WITH h2, AVG(r2.score_location) AS avg2, max_score
+WHERE avg2 = max_score
+RETURN h2.name AS hotel_name, avg2 AS location_score
