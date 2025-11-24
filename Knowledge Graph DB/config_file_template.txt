@@ -1,5 +1,5 @@
 a config.txt file should be created in Knowledge Graph DB folder with only the next 3 lines:
 
 URI=neo4j://127.0.0.1:7687 #should be replaced with correct URI
-USERNAME= <username> #replace with correct value
-PASSWORD= <password> #replace with correct value
+USERNAME=<username> #replace with correct value
+PASSWORD=<password> #replace with correct value
