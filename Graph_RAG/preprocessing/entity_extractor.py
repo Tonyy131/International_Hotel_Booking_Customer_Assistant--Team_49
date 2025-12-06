@@ -89,3 +89,10 @@ class EntityExtractor:
             "gender": gender,
             "rating": rating
         }
+    
+
+_global_extractor = EntityExtractor()
+
+def extract_entities(text: str) -> Dict:
+    """Public helper to extract all entities using the global extractor."""
+    return _global_extractor.extract(text)

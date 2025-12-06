@@ -1,61 +1,185 @@
-# Graph_RAG/retrieval/embedding_retriever.py
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from neo4j_connector import Neo4jConnector
-# Use your encoder located in preprocessing
-from preprocessing.embedding_encoder import EmbeddingEncoder  # stays in preprocessing as agreed. :contentReference[oaicite:4]{index=4}
-import numpy as np
-import math
+from preprocessing.embedding_encoder import EmbeddingEncoder
+from preprocessing.entity_extractor import extract_entities
+
 
 class EmbeddingRetriever:
     """
-    Perform semantic search using a precomputed vector index in Neo4j.
-    Assumes you created appropriate vector indices in Neo4j (see notes below).
+    Embedding-based retrieval for Hotels using Neo4j vector index.
+    Supports:
+      - Global semantic search
+      - City-filtered semantic search (single or multiple)
+      - Country-filtered semantic search (single or multiple)
     """
-    def __init__(self, neo4j_connector: Optional[Neo4jConnector] = None, encoder: Optional[EmbeddingEncoder] = None):
-        self.db = neo4j_connector or Neo4jConnector()
-        self.encoder = encoder or EmbeddingEncoder()
 
-    # Example: semantic search for hotels using Neo4j vector index named 'hotel_vector_index'
-    def sem_search_hotels(self, query: str, top_k: int = 10) -> List[Dict[str, Any]]:
-        embedding = self.encoder.encode(query)
-        if not embedding:
-            return []
+    def __init__(self, index_name: str = "hotel_embedding_minilm_idx"):
+        self.db = Neo4jConnector()
+        self.encoder = EmbeddingEncoder()
+        self.index_name = index_name
 
-        # If your Neo4j has the vector index available (Neo4j GDS / vector plugin),
-        # you can use the vector query procedure. Adjust name to your index name.
+    # GLOBAL SEARCH (no filters)
+    def sem_search_hotels_global(self, embedding: List[float], top_k: int = 10):
         cypher = """
-        CALL db.index.vector.queryNodes($index_name, $top_k, $embedding) YIELD node, score
+        CALL db.index.vector.queryNodes($index_name, $top_k, $embedding)
+        YIELD node, score
         RETURN node.name AS name, node.hotel_id AS hotel_id, score
+        ORDER BY score DESC
         """
 
         params = {
-            "index_name": "hotel_vector_index",  # change if your index is different
-            "top_k": top_k,
-            "embedding": embedding
+            "index_name": self.index_name,
+            "embedding": embedding,
+            "top_k": top_k
         }
 
-        try:
-            return self.db.run_query(cypher, params)
-        except Exception as e:
-            print("Vector query failed, falling back to substring match. Error:", e)
-            # Fallback: text substring search
-            return self.db.run_query(
-                "MATCH (h:Hotel) WHERE toLower(h.name) CONTAINS toLower($q) RETURN h.name AS name, h.hotel_id AS hotel_id LIMIT $limit",
-                {"q": query, "limit": top_k}
-            )
+        return self.db.run_query(cypher, params)
 
-    def sem_search_reviews(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
-        embedding = self.encoder.encode(query)
-        if not embedding:
-            return []
-
+    # SINGLE CITY
+    def sem_search_hotels_in_city(self, city: str, embedding: List[float], top_k: int = 10):
         cypher = """
-        CALL db.index.vector.queryNodes($index_name, $top_k, $embedding) YIELD node, score
-        RETURN node.review_id AS review_id, node.text AS text, score
+        MATCH (c:City)
+        WHERE toLower(c.name) = toLower($city)
+
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c)
+        WHERE h.embedding_minilm IS NOT NULL
+
+        WITH collect(h) AS hotels
+
+        CALL db.index.vector.queryNodes($index_name, $top_k, $embedding)
+        YIELD node, score
+        WHERE node IN hotels
+
+        RETURN node.name AS name, node.hotel_id AS hotel_id, score
+        ORDER BY score DESC
+        LIMIT $top_k
         """
-        params = {"index_name": "review_vector_index", "top_k": top_k, "embedding": embedding}
-        try:
-            return self.db.run_query(cypher, params)
-        except Exception as e:
-            print("Review vector query failed:", e)
-            return []
+
+        params = {
+            "city": city,
+            "index_name": self.index_name,
+            "embedding": embedding,
+            "top_k": top_k
+        }
+
+        return self.db.run_query(cypher, params)
+
+    # MULTIPLE CITIES
+    def sem_search_hotels_in_cities(self, cities: List[str], embedding: List[float], top_k: int = 10):
+        cypher = """
+        MATCH (c:City)
+        WHERE toLower(c.name) IN $cities
+
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c)
+        WHERE h.embedding_minilm IS NOT NULL
+
+        WITH collect(h) AS hotels
+
+        CALL db.index.vector.queryNodes($index_name, $top_k, $embedding)
+        YIELD node, score
+        WHERE node IN hotels
+
+        RETURN node.name AS name, node.hotel_id AS hotel_id, score
+        ORDER BY score DESC
+        LIMIT $top_k
+        """
+
+        params = {
+            "cities": [c.lower() for c in cities],
+            "index_name": self.index_name,
+            "embedding": embedding,
+            "top_k": top_k
+        }
+
+        return self.db.run_query(cypher, params)
+
+    # SINGLE COUNTRY
+    def sem_search_hotels_in_country(self, country: str, embedding: List[float], top_k: int = 10):
+        cypher = """
+        MATCH (co:Country)
+        WHERE toLower(co.name) = toLower($country)
+
+        MATCH (c:City)-[:LOCATED_IN]->(co)
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c)
+        WHERE h.embedding_minilm IS NOT NULL
+
+        WITH collect(h) AS hotels
+
+        CALL db.index.vector.queryNodes($index_name, $top_k, $embedding)
+        YIELD node, score
+        WHERE node IN hotels
+
+        RETURN node.name AS name, node.hotel_id AS hotel_id, score
+        ORDER BY score DESC
+        LIMIT $top_k
+        """
+
+        params = {
+            "country": country,
+            "index_name": self.index_name,
+            "embedding": embedding,
+            "top_k": top_k
+        }
+
+        return self.db.run_query(cypher, params)
+
+    # MULTIPLE COUNTRIES
+    def sem_search_hotels_in_countries(self, countries: List[str], embedding: List[float], top_k: int = 10):
+        cypher = """
+        MATCH (co:Country)
+        WHERE toLower(co.name) IN $countries
+
+        MATCH (c:City)-[:LOCATED_IN]->(co)
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c)
+        WHERE h.embedding_minilm IS NOT NULL
+
+        WITH collect(h) AS hotels
+
+        CALL db.index.vector.queryNodes($index_name, $top_k, $embedding)
+        YIELD node, score
+        WHERE node IN hotels
+
+        RETURN node.name AS name, node.hotel_id AS hotel_id, score
+        ORDER BY score DESC
+        LIMIT $top_k
+        """
+
+        params = {
+            "countries": [co.lower() for co in countries],
+            "index_name": self.index_name,
+            "embedding": embedding,
+            "top_k": top_k
+        }
+
+        return self.db.run_query(cypher, params)
+
+    # MAIN ENTRY POINT
+    def sem_search_hotels(self, query: str, top_k: int = 10):
+        embedding = self.encoder.encode(query)
+        entities = extract_entities(query)
+
+        cities = entities.get("cities", [])
+        countries = entities.get("countries", [])
+
+        # MULTI-CITY
+        if len(cities) > 1:
+            return self.sem_search_hotels_in_cities(cities, embedding, top_k)
+
+        # SINGLE CITY
+        if len(cities) == 1:
+            results = self.sem_search_hotels_in_city(cities[0], embedding, top_k)
+            if results:
+                return results
+
+        # MULTI-COUNTRY
+        if len(countries) > 1:
+            return self.sem_search_hotels_in_countries(countries, embedding, top_k)
+
+        # SINGLE COUNTRY
+        if len(countries) == 1:
+            results = self.sem_search_hotels_in_country(countries[0], embedding, top_k)
+            if results:
+                return results
+
+        # GLOBAL FALLBACK
+        return self.sem_search_hotels_global(embedding, top_k)
