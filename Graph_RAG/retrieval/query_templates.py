@@ -9,9 +9,15 @@ Parameters are provided as dicts when executing queries.
 QUERY_TEMPLATES = {
     # Basic hotel search by city
     "hotel_search_by_city": """
-        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City {name: $city})
-        RETURN h.name AS name, h.hotel_id AS hotel_id, h.star_rating AS stars, h.average_reviews_score AS avg_score
-        ORDER BY h.average_reviews_score DESC
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)
+        WHERE c.name IN $cities
+        RETURN
+            h.name AS name,
+            h.hotel_id AS hotel_id,
+            h.star_rating AS stars,
+            h.average_reviews_score AS avg_score,
+            c.name AS city
+        ORDER BY c.name, h.average_reviews_score DESC
         LIMIT $limit
     """,
 
@@ -28,6 +34,19 @@ QUERY_TEMPLATES = {
         MATCH (h:Hotel)
         WHERE h.average_reviews_score >= $rating
         RETURN h.name AS name, h.hotel_id AS hotel_id, h.star_rating AS stars, h.average_reviews_score AS avg_score
+        ORDER BY h.average_reviews_score DESC
+        LIMIT $limit
+    """,
+
+    # Search hotels with minimum average score
+    "hotel_search_min_avg_score": """
+        MATCH (h:Hotel)
+        WHERE h.average_reviews_score >= $min_score
+        RETURN 
+            h.name AS name,
+            h.hotel_id AS hotel_id,
+            h.star_rating AS stars,
+            h.average_reviews_score AS avg_score
         ORDER BY h.average_reviews_score DESC
         LIMIT $limit
     """,
@@ -83,5 +102,38 @@ QUERY_TEMPLATES = {
         MATCH (h:Hotel {hotel_id: $hotel_id})-[:LOCATED_IN]->(city:City)-[:LOCATED_IN]->(co:Country)
         RETURN h, city.name AS city, co.name AS country
         LIMIT 1
-    """
+    """,
+
+    # Best hotel overall based on average rating
+    "best_hotel_overall": """
+        MATCH (h:Hotel)
+        WHERE h.average_reviews_score IS NOT NULL
+        RETURN 
+            h.name AS name,
+            h.hotel_id AS hotel_id,
+            h.star_rating AS stars,
+            h.average_reviews_score AS avg_score
+        ORDER BY h.average_reviews_score DESC
+        LIMIT $limit
+    """,
+
+    # Search hotels by city or country
+    "hotel_search_by_city_or_country": """
+    MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+    WHERE c.name IN $cities
+       OR co.name IN $countries
+    RETURN
+        h.name AS name,
+        h.hotel_id AS hotel_id,
+        c.name AS city,
+        co.name AS country,
+        h.average_reviews_score AS avg_score
+    ORDER BY h.average_reviews_score DESC
+    LIMIT $limit
+    """,
+
+
+    
+
+
 }
