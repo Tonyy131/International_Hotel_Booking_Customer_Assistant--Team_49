@@ -37,95 +37,120 @@ class SpacyExtractor:
 #-------- city and country classification---------
 
 class Country_City_Classifier:
+
     def __init__(self):
         self.gc = geonamescache.GeonamesCache()
-
+        
+        self.city_map = {}
+        
         all_cities = self.gc.get_cities()
-        self.city_names = {c["name"].lower() for c in all_cities.values()}
+        for c in all_cities.values():
+            real_name = c["name"]
+            low_name = real_name.lower()
+            
+            # Map exact name
+            self.city_map[low_name] = real_name
+            
+            # AUTOMATIC GENERALIZATION:
+            # If DB has "New York City", map "new york" -> "New York City"
+            if low_name.endswith(" city"):
+                short_name = low_name.replace(" city", "").strip()
+                # Only add if it doesn't conflict with an existing city
+                if short_name and short_name not in self.city_map:
+                    self.city_map[short_name] = real_name
+
+    
+
+        # Country sets
         self.country_names_gc = {c["name"].lower() for c in self.gc.get_countries().values()}
         self.country_names_pc = {country.name.lower(): country.name for country in pycountry.countries}
 
 
     def canonical_country_name(self, name: str) -> str:
-        """
-        Normalize any country input into its canonical ISO country name.
-        """
+        """Normalize country name to ISO standard."""
         name_clean = name.strip().title()
 
-        # Try pycountry fuzzy search (best method)
+        # Fuzzy match via pycountry
         try:
             match = pycountry.countries.search_fuzzy(name_clean)
             return match[0].name
         except LookupError:
             pass
 
-        # Fallback if exact match exists in pycountry
         if name_clean.lower() in self.country_names_pc:
             return self.country_names_pc[name_clean.lower()]
 
-        # Fallback to geonamescache countries
-        for c in self.gc.get_countries().values():
-            if c["name"].lower() == name_clean.lower():
-                return c["name"]
+        for c_name in self.country_names_gc:
+             if c_name == name_clean.lower():
+                 return c_name.title()
 
-        return name_clean  # last fallback
+        return name_clean
 
 
     def is_country(self, name: str) -> bool:
         name_low = name.lower().strip()
 
-        # Reject if not title cased
-        if name == name_low:
-            return False
+        if name_low in self.country_names_pc: return True
+        if name_low in self.country_names_gc: return True
 
-        #Exact name using pucountry
-        if name_low in self.country_names_pc:
-            return True
-        
-        #fuzzy match using pucountry
+        if name_low in self.city_map:
+            return False
+            
         try:
-            matches = pycountry.countries.search_fuzzy(name_low)
-            if matches:
+            if pycountry.countries.search_fuzzy(name_low):
                 return True
         except LookupError:
             pass
-
-        #Exact name using geonamescache
-        if name_low in self.country_names_gc:
-            return True
 
         return False
     
 
     def is_city(self, name: str) -> bool:
         name_low = name.lower().strip()
-        
-        # Exact match (Existing logic)
-        if name_low in self.city_names:
+        # lookup using our smart map
+        if name_low in self.city_map:
             return True
         
-        # Fuzzy match against the entire set of city names
-        matches = difflib.get_close_matches(name_low, self.city_names, n=1, cutoff=0.9)
+        # Fuzzy fallback (slower)
+        # We search against keys of city_map to catch partial typos
+        matches = difflib.get_close_matches(name_low, self.city_map.keys(), n=1, cutoff=0.9)
         if matches:
             return True
 
         return False
     
+    def normalize_city_name(self, name: str) -> str:
+        """Returns the canonical name (e.g. 'new york' -> 'New York City')"""
+        name_low = name.lower().strip()
+        
+        # 1. Direct Map Lookup
+        if name_low in self.city_map:
+            return self.city_map[name_low]
+            
+        # 2. Fuzzy Map Lookup (matches logic in is_city)
+        matches = difflib.get_close_matches(name_low, self.city_map.keys(), n=1, cutoff=0.9)
+        if matches:
+            return self.city_map[matches[0]]
+            
+        return name
+
     def classify(self, gpe_list):
         cities = []
         countries = []
 
         for name in gpe_list:
-            if self.is_city(name):
-                cities.append(name)
-            elif self.is_country(name):
+            # 1. Country Check FIRST
+            if self.is_country(name):
                 countries.append(self.canonical_country_name(name))
+            
+            # 2. City Check SECOND 
+            elif self.is_city(name):
+                cities.append(self.normalize_city_name(name))
 
         return {
             "cities": cities,
             "countries": countries
         }
-    
 
 #------------Origin and Destination Detection------------
 
@@ -134,27 +159,40 @@ class OriginDestinationDetector:
         self.classifier = classifier
         self.nlp = nlp
         self.gc = geonamescache.GeonamesCache()
+        
+        # Pre-load cities for population-based lookup
+        self.city_lookup = {}
+        all_cities = self.gc.get_cities()
+        
+        for c in all_cities.values():
+            name_low = c["name"].lower()
+            pop = c.get("population", 0)
+            code = c["countrycode"]
+            
+            # Resolve country name immediately
+            country_obj = pycountry.countries.get(alpha_2=code)
+            if country_obj:
+                c_name = country_obj.name
+                
+                if name_low not in self.city_lookup:
+                    self.city_lookup[name_low] = []
+                self.city_lookup[name_low].append((pop, c_name))
+        
+        # Sort all entries by population descending
+        for k in self.city_lookup:
+            self.city_lookup[k].sort(key=lambda x: x[0], reverse=True)
 
 
-    #-------- Helper to get prepositional object
-    def get_pobj(self, prep_token):
-        for child in prep_token.children:
-            if child.dep_ == "pobj":
-                tokens = [child.text]
-
-                # include compound words: "South", "United", "New"
-                for grandchild in child.children:
-                    if grandchild.dep_ in ("compound", "amod"):
-                        tokens.append(grandchild.text)
-
-
-                return " ".join(tokens)
-        return None
-
-    #-------- Country classification helper
     def classify_country(self, name: str):
+        """
+        Determines country from a name.
+        Prioritizes: 1. Explicit Country 2. City with Highest Population
+        """
         name_clean = name.strip()
+        # Normalize (New York -> New York City)
+        name_clean = self.classifier.normalize_city_name(name_clean)
 
+        # 1. Check if it IS a country
         if self.classifier.is_country(name_clean):
             try:
                 match = pycountry.countries.search_fuzzy(name_clean)
@@ -162,102 +200,131 @@ class OriginDestinationDetector:
             except Exception:
                 return name_clean
             
+        # 2. Check if it is a City (Lookup by Population)
         name_low = name_clean.lower()
-        all_cities = self.gc.get_cities()
-        for city_data in all_cities.values():
-            if city_data["name"].lower() == name_low:
-                country_code = city_data["countrycode"] 
-                country = pycountry.countries.get(alpha_2=country_code)
-                if country:
-                    return country.name
+        if name_low in self.city_lookup:
+            # Return country of the most populous city match
+            return self.city_lookup[name_low][0][1]
             
         return None
 
 
     def extract(self, text: str, gpe_list):
         doc = self.nlp(text)
+        
+        origin_countries = set()
+        destination_countries = set()
+        origin_sources = set()  # Tracks normalized city names used as origin
 
-        origin_city_sources = []
+        # Triggers
+        # "be" is handled specifically for "I am in..." vs "I will be in..."
+        ORIGIN_VERBS = {"live", "reside", "stay", "born", "come", "hail"}
+        ORIGIN_PREPS = {"from"}
+        
+        DEST_VERBS = {"visit", "travel", "go", "fly", "head", "vacation", "book", "want", "need", "plan"}
+        DEST_NOUNS = {"trip", "holiday", "vacation", "hotel", "hostel", "apartment", "flight"}
 
-        origin = []
-        destination = []
+        for ent in doc.ents:
+            if ent.label_ not in {"GPE", "LOC"}: continue
+            
+            country_name = self.classify_country(ent.text)
+            if not country_name: continue
 
-        # look for "from X"
-        for token in doc:
-            if token.text.lower() == "from" and token.dep_ == "prep":
-                probj = self.get_pobj(token)
-                if probj:
-                    country = self.classify_country(probj)
-                    if country and country not in origin:
-                        origin.append(country)
-                        origin_city_sources.append(probj)
-                        
-        # look for "live in X"
-        for token in doc:
-            if token.lemma_ == "live":
-                for child in token.children:
-                    if child.dep_ == "prep" and child.text.lower() == "in":
-                        probj = self.get_pobj(child)
-                        if probj:
-                            country = self.classify_country(probj)
-                            if country and country not in origin:
-                                origin.append(country)
-                                origin_city_sources.append(probj)
+            # Normalize city name (e.g., "New York" -> "new york city")
+            city_norm = self.classifier.normalize_city_name(ent.text).lower()
 
-        # look for "to Y"
-        for token in doc:
-            if token.text.lower() == "to" and token.dep_ == "prep":
-                probj = self.get_pobj(token)
-                if probj:
-                    country = self.classify_country(probj)
-                    if country and country not in destination:
-                        destination.append(country)
+            # --- ANCESTOR SEARCH (Scan up the tree) ---
+            # We look up to 3 levels up for a trigger
+            # e.g. "I [live] in the beautiful [city] of [New York]"
+            
+            is_origin = False
+            is_dest = False
+            
+            # 1. Check immediate head for Prepositions ("from Paris", "to London")
+            head = ent.root.head
+            if head.text.lower() == "from":
+                is_origin = True
+            elif head.text.lower() == "to":
+                is_dest = True
+            
+            # 2. Walk up the tree for Verbs/Nouns
+            if not is_origin and not is_dest:
+                # Ancestors stream: [in, city, of, live]...
+                for token in ent.root.ancestors:
+                    lemma = token.lemma_.lower()
+                    
+                    # ORIGIN CHECKS
+                    if lemma in ORIGIN_VERBS:
+                        is_origin = True
+                        break
+                    
+                    # DESTINATION CHECKS
+                    if lemma in DEST_VERBS:
+                        is_dest = True
+                        break
+                    if token.pos_ == "NOUN" and lemma in DEST_NOUNS:
+                        is_dest = True
+                        break
+                    
+                    # Special Handling for "BE" (am, is, are)
+                    # "I am in Egypt" (Origin) vs "I will be in Egypt" (Dest)
+                    if lemma == "be":
+                        # Check children of 'be' for future markers
+                        is_future = any(child.lemma_ in {"will", "go", "plan", "want"} for child in token.children)
+                        if is_future:
+                            is_dest = True
+                        else:
+                            is_origin = True
+                        break
 
-        # look for verbs
-        travel_verbs = {"go", "going", "travel", "travelling", "visit", "visiting", "fly", "heading"}
-        for token in doc:
-            if token.lemma_.lower() in travel_verbs and token.pos_ == "VERB":
-                # look for direct objects (destinations)
-                for child in token.children:
-                    if child.dep_ == "dobj":
-                        country = self.classify_country(child.text)
-                        if country and country not in destination:
-                            destination.append(country)
+            # --- ASSIGNMENT ---
+            if is_origin:
+                origin_countries.add(country_name)
+                origin_sources.add(city_norm)
+            elif is_dest:
+                destination_countries.add(country_name)
 
-                # look for prepositional objects with "from" (origins)
-                for child in token.children:
-                    if child.dep_ == "prep" and child.text.lower() == "from":
-                        probj = self.get_pobj(child)
-                        if probj:
-                            country = self.classify_country(probj)
-                            if country and country not in origin:
-                                origin.append(country)
-
-        # fallback to spacy GPEs if nothing found
+        # --- FALLBACK LOGIC ---
+        # If a city was mentioned but not caught by dependency parsing above,
+        # we infer its role based on what we already know.
+        
         classified = self.classifier.classify(gpe_list)
-        if not origin and "from" in text.lower():
-            for country in classified["countries"]:
-                origin.append(country)
-                break
+        
+        for city in classified["cities"]:
+            city_norm = self.classifier.normalize_city_name(city).lower()
+            
+            # Skip if this city was already identified as an origin source
+            if city_norm in origin_sources:
+                continue
 
-        if not destination and len (classified["countries"]) == 1:
-            destination.append(classified["countries"][0])
+            country = self.classify_country(city_norm)
+            if not country: continue
 
-        #if we have cities but no destination, infer country from city
-        if not destination and classified["cities"]:
-            for city in classified["cities"]:
-                if city.lower() in {c.lower() for c in origin_city_sources}:
-                    continue
-                country = self.classify_country(city)
-                if country and country not in destination:
-                    destination.append(country)
+            # Heuristic: If we already have an Origin, assume unused cities are Destinations
+            if origin_countries:
+                if country not in origin_countries:
+                    destination_countries.add(country)
+            
+            # Heuristic: If NO origin found yet, and we have "from" in text, 
+            # the first entity might be origin 
+            elif "from" in text.lower() and not destination_countries:
+                 origin_countries.add(country)
+                 origin_sources.add(city_norm)
+            
+            # Default: If not origin, add to destination
+            else:
+                destination_countries.add(country)
 
+        # Clean up: Ensure Countries found via entities are added
+        for country in classified["countries"]:
+             if country not in origin_countries and country not in destination_countries:
+                 destination_countries.add(country)
 
         return {
-            "origin_country": origin,
-            "destination_country": destination
+            "origin_country": list(origin_countries),
+            "destination_country": list(destination_countries)
         }
-    
+
 class RatingExtractor:
     STAR_TO_RATING = {
         5: 9.0,
