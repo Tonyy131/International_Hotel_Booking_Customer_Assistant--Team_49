@@ -9,9 +9,9 @@ class Neo4jConnector:
     Expects environment variables (or a config file) to supply connection info.
     """
     def __init__(self, uri: Optional[str] = None, user: Optional[str] = None, password: Optional[str] = None):
-        uri = uri or os.getenv("NEO4J_URI", "bolt://localhost:7687")
+        uri = uri or os.getenv("NEO4J_URI", "neo4j://127.0.0.1:7687")
         user = user or os.getenv("NEO4J_USER", "neo4j")
-        password = password or os.getenv("NEO4J_PASSWORD", "test")
+        password = password or os.getenv("NEO4J_PASSWORD", "Ramez_2004")
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
 
     def run_query(self, cypher: str, parameters: Optional[Dict[str, Any]] = None, fetch_one: bool = False) -> List[Dict[str, Any]]:

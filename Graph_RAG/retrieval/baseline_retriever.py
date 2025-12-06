@@ -1,7 +1,7 @@
 # Graph_RAG/retrieval/baseline_retriever.py
 from typing import Dict, Any, Optional
-from Graph_RAG.retrieval.query_templates import QUERY_TEMPLATES
-from Graph_RAG.neo4j_connector import Neo4jConnector
+from retrieval.query_templates import QUERY_TEMPLATES
+from neo4j_connector import Neo4jConnector
 
 class BaselineRetriever:
     """

@@ -1,8 +1,8 @@
 # Graph_RAG/retrieval/retrieval_pipeline.py
 from typing import Dict, Any, List
-from Graph_RAG.retrieval.baseline_retriever import BaselineRetriever
-from Graph_RAG.retrieval.embedding_retriever import EmbeddingRetriever
-from Graph_RAG.neo4j_connector import Neo4jConnector
+from retrieval.baseline_retriever import BaselineRetriever
+from retrieval.embedding_retriever import EmbeddingRetriever
+from neo4j_connector import Neo4jConnector
 
 class RetrievalPipeline:
     """

@@ -1,6 +1,6 @@
 # Graph_RAG/retrieval/embedding_retriever.py
 from typing import List, Dict, Any, Optional
-from Graph_RAG.neo4j_connector import Neo4jConnector
+from neo4j_connector import Neo4jConnector
 # Use your encoder located in preprocessing
 from preprocessing.embedding_encoder import EmbeddingEncoder  # stays in preprocessing as agreed. :contentReference[oaicite:4]{index=4}
 import numpy as np
