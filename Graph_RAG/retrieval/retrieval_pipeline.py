@@ -20,7 +20,8 @@ class RetrievalPipeline:
         embedding_results = []
         if use_embeddings:
             # For hotel-oriented intents we search hotels + reviews
-            embedding_results = self.embed.sem_search_hotels(user_query, top_k=limit)
+            rating_filter = entities.get("rating_filter") if entities else None
+            embedding_results = self.embed.sem_search_hotels(user_query, entities, top_k=limit, rating_filter=rating_filter)
 
         combined = self._merge_results(baseline_results, embedding_results)
 

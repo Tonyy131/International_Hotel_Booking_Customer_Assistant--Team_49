@@ -11,9 +11,35 @@ class EmbeddingIndexer:
         - h.embedding_minilm   (List[float])
     """
 
-    def __init__(self, neo4j_connector: Neo4jConnector = None):
+    def __init__(self, neo4j_connector: Neo4jConnector = None, model_name="minilm"):
         self.db = neo4j_connector or Neo4jConnector()
-        self.encoder = EmbeddingEncoder()
+        self.encoder = EmbeddingEncoder(model_name=model_name)
+        if model_name == "bge":
+            self.property_name = "embedding_bge"
+        else:
+            self.property_name = "embedding_minilm"
+
+    def ensure_vector_index(self):
+        if self.property_name == "embedding_minilm":
+            dims = 384
+            index_name = "hotel_embedding_minilm_idx"
+        else:
+            dims = 768
+            index_name = "hotel_embedding_bge_idx"
+
+        cypher = f"""
+        CREATE VECTOR INDEX {index_name} IF NOT EXISTS
+        FOR (h:Hotel) ON (h.{self.property_name})
+        OPTIONS {{
+        indexConfig: {{
+            `vector.dimensions`: {dims},
+            `vector.similarity_function`: 'cosine'
+        }}
+        }};
+        """
+
+        self.db.run_query(cypher)
+
 
     def fetch_hotels(self) -> List[Dict[str, Any]]:
         """
@@ -29,9 +55,9 @@ class EmbeddingIndexer:
         """
         Stores the embedding vector in the specified node.
         """
-        cypher = """
+        cypher = f"""
         MATCH (h:Hotel) WHERE elementId(h) = $node_id
-        SET h.embedding_minilm = $embedding
+        SET h.{self.property_name} = $embedding
         """
         params = {"node_id": node_id, "embedding": embedding}
         self.db.run_query(cypher, params)
@@ -54,4 +80,7 @@ class EmbeddingIndexer:
 
 
 if __name__ == "__main__":
+    EmbeddingIndexer().ensure_vector_index()
+    EmbeddingIndexer(model_name="bge").ensure_vector_index()
     EmbeddingIndexer().index_all_hotels()
+    EmbeddingIndexer(model_name="bge").index_all_hotels()
