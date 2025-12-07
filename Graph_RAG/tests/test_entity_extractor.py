@@ -17,7 +17,7 @@ def run():
         "I want excellent hotels in Berlin.",
         "I live in Canada and want to visit Panama.",
         "I live in Cairo and want a hotel in Manhattan.",
-        "I live in mexico and want a hotel in Stuttgart"
+        "I live in Berlin and want a hotel in Stuttgart"
     ]
 
     for q in queries:

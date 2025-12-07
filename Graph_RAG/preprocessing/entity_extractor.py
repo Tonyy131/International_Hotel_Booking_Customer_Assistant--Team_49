@@ -20,6 +20,7 @@ from .spacy_extractor import (
 )
 from .hotel_matcher import HotelMatcher
 from .hotel_loader import load_hotels
+from .llm_entity_extractor import extract_with_llm
 
 
 class EntityExtractor:
@@ -36,8 +37,21 @@ class EntityExtractor:
         hotel_names = load_hotels()
         self.hotel_matcher = HotelMatcher(hotel_names)
 
-    def extract(self, text: str) -> Dict:
+    def extract(self, text: str, use_llm:bool = True) -> Dict:
         text_low = text.lower()
+
+        if use_llm:
+            try:
+                llm_result = extract_with_llm(text)
+                if llm_result is None:
+                    raise ValueError("LLM returned None")
+                # Fix age_group (model sometimes outputs string "null")
+                if isinstance(llm_result["age_group"], str) and llm_result["age_group"].lower() == "null":
+                    llm_result["age_group"] = None
+
+                return llm_result
+            except Exception as e:
+                print(f"LLM extraction failed: {e}. Falling back to rule-based extractor.")
 
         # 1) Extract GPE entities via spaCy (cities/countries)
         gpes = self.spacy_ex.extract_gpe_entities(text)
