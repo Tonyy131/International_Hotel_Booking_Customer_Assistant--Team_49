@@ -21,9 +21,20 @@ class BaselineRetriever:
 
         # Route to appropriate template:
         if intent == "hotel_search":
+
+             # Combined city/country search
+            if e.get("cities") and e.get("countries"):
+                return self.db.run_query(
+                    QUERY_TEMPLATES["hotel_search_by_city_or_country"],
+                    {
+                        "cities": e.get("cities"),
+                        "countries": e.get("countries"),
+                        "limit": limit
+                    }
+                )
             # priority: city -> country -> rating -> free text hotel name
             if e.get("cities"):
-                return self.db.run_query(QUERY_TEMPLATES["hotel_search_by_city"], {"city": e["cities"][0], "limit": limit})
+                return self.db.run_query(QUERY_TEMPLATES["hotel_search_by_city"], {"cities": e["cities"], "limit": limit})
             if e.get("countries"):
                 return self.db.run_query(QUERY_TEMPLATES["hotel_search_by_country"], {"country": e["countries"][0], "limit": limit})
             if e.get("rating"):

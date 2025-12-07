@@ -1,4 +1,4 @@
 ﻿config.txt
 venv
-.pyc
 __pycache__/
+*.pyc
