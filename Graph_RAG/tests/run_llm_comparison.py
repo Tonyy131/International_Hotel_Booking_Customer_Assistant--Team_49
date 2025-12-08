@@ -28,7 +28,9 @@ from llm.llm_answerer import answer_with_model
 MODEL_CANDIDATES = [
     "meta-llama/Llama-3.1-8B-Instruct",
     "Qwen/Qwen2.5-1.5B-Instruct",
-    "deepseek-ai/DeepSeek-R1"
+    "deepseek-ai/DeepSeek-R1",
+    "mistralai/Mistral-7B-Instruct-v0.2"
+
 ]
 
 
