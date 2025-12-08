@@ -3,6 +3,7 @@ EmbeddingEncoder: Encodes user queries into dense vectors
 using the same model that is used for KG node embeddings.
 
 Model: sentence-transformers/all-MiniLM-L6-v2
+or BAAI/bge-small-en-v1.5
 """
 
 from sentence_transformers import SentenceTransformer
@@ -15,9 +16,13 @@ class EmbeddingEncoder:
     """
 
     MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+    MODEL_2_NAME = "BAAI/bge-small-en-v1.5"
 
-    def __init__(self):
-        self.model = SentenceTransformer(self.MODEL_NAME)
+    def __init__(self, model_name="minilm"):
+        if model_name == "bge":
+            self.model = SentenceTransformer(self.MODEL_2_NAME)
+        else:
+            self.model = SentenceTransformer(self.MODEL_NAME)
 
     def encode(self, text: str) -> List[float]:
         """

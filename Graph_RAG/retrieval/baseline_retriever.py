@@ -21,24 +21,59 @@ class BaselineRetriever:
 
         # Route to appropriate template:
         if intent == "hotel_search":
+            # priority: rating filter -> city -> country -> free text hotel name
+            # rating_filter is the structured filter from LLM
+            rf = e.get("rating_filter") or {"type": "none", "operator": None}
+            cities = e.get("cities") or None         # list or None
+            countries = e.get("countries") or None   # list or None
 
-             # Combined city/country search
-            if e.get("cities") and e.get("countries"):
-                return self.db.run_query(
-                    QUERY_TEMPLATES["hotel_search_by_city_or_country"],
-                    {
+            if rf and rf.get("type") != "none":
+                op = rf.get("operator")
+                if op == "gte" and rf.get("value") is not None:
+                    params = {
+                        "rating": rf["value"],
                         "cities": e.get("cities"),
                         "countries": e.get("countries"),
-                        "limit": limit
+                        "limit": limit,
                     }
-                )
-            # priority: city -> country -> rating -> free text hotel name
+                    return self.db.run_query(QUERY_TEMPLATES["hotel_search_min_rating"], params)
+
+                if op == "lte" and rf.get("value") is not None:
+                    params = {
+                        "max": rf["value"],
+                        "cities": e.get("cities"),
+                        "countries": e.get("countries"),
+                        "limit": limit,
+                    }
+                    return self.db.run_query(QUERY_TEMPLATES["hotel_search_max_rating"], params)
+
+                if op == "between" and rf.get("min") is not None and rf.get("max") is not None:
+                    params = {
+                        "min": rf["min"],
+                        "max": rf["max"],
+                        "cities": e.get("cities"),
+                        "countries": e.get("countries"),
+                        "limit": limit,
+                    }
+                    return self.db.run_query(QUERY_TEMPLATES["hotel_search_rating_range"], params)
+
+                if op == "eq" and rf.get("value") is not None:
+                    params = {
+                        "value": rf["value"],
+                        "cities": e.get("cities"),
+                        "countries": e.get("countries"),
+                        "limit": limit,
+                    }
+                    return self.db.run_query(QUERY_TEMPLATES["hotel_search_exact_rating"], params)
+
+
+
             if e.get("cities"):
                 return self.db.run_query(QUERY_TEMPLATES["hotel_search_by_city"], {"cities": e["cities"], "limit": limit})
+
             if e.get("countries"):
-                return self.db.run_query(QUERY_TEMPLATES["hotel_search_by_country"], {"country": e["countries"][0], "limit": limit})
-            if e.get("rating"):
-                return self.db.run_query(QUERY_TEMPLATES["hotel_search_min_rating"], {"rating": e["rating"], "limit": limit})
+                return self.db.run_query(QUERY_TEMPLATES["hotel_search_by_country"], {"countries": e["countries"], "limit": limit})
+
             # fallback free text substring
             if e.get("hotels"):
                 return self.db.run_query(QUERY_TEMPLATES["hotel_by_name_substring"], {"q": e["hotels"][0], "limit": limit})

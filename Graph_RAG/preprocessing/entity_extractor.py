@@ -20,6 +20,7 @@ from .spacy_extractor import (
 )
 from .hotel_matcher import HotelMatcher
 from .hotel_loader import load_hotels
+from .llm_entity_extractor import extract_with_llm
 
 
 class EntityExtractor:
@@ -36,8 +37,52 @@ class EntityExtractor:
         hotel_names = load_hotels()
         self.hotel_matcher = HotelMatcher(hotel_names)
 
-    def extract(self, text: str) -> Dict:
+    @staticmethod
+    def normalize_rating_filter(rf: dict) -> dict:
+        # Ensure numeric values and normalize stars->score
+        if not rf or rf.get("type") == "none":
+            return {"type": "none", "operator": None, "value": None, "min": None, "max": None}
+        out = rf.copy()
+        if rf.get("type") == "stars":
+            # convert star values (assume 1..5) to 10-scale
+            if rf.get("value") is not None:
+                out["value"] = float(rf["value"]) * 2.0
+            if rf.get("min") is not None:
+                out["min"] = float(rf["min"]) * 2.0
+            if rf.get("max") is not None:
+                out["max"] = float(rf["max"]) * 2.0
+        else:
+            # ensure floats
+            if rf.get("value") is not None:
+                out["value"] = float(rf["value"])
+            if rf.get("min") is not None:
+                out["min"] = float(rf["min"])
+            if rf.get("max") is not None:
+                out["max"] = float(rf["max"])
+        return out
+
+
+    def extract(self, text: str, use_llm:bool = True) -> Dict:
         text_low = text.lower()
+
+        if use_llm:
+            try:
+                llm_result = extract_with_llm(text)
+                if llm_result is None:
+                    raise ValueError("LLM returned None")
+
+                # Fix age_group: convert "null" (string) → None
+                if isinstance(llm_result.get("age_group"), str) and llm_result["age_group"].lower() == "null":
+                    llm_result["age_group"] = None
+
+                rf = llm_result.get("rating_filter", {})
+                llm_result["rating_filter"] = EntityExtractor.normalize_rating_filter(rf)
+
+                return llm_result
+            
+            except Exception as e:
+                print(f"LLM extraction failed: {e}. Falling back to rule-based extractor.")
+
 
         # 1) Extract GPE entities via spaCy (cities/countries)
         gpes = self.spacy_ex.extract_gpe_entities(text)
