@@ -2,6 +2,8 @@
 from typing import Dict, Any, List
 from retrieval.baseline_retriever import BaselineRetriever
 from retrieval.embedding_retriever import EmbeddingRetriever
+from preprocessing.entity_extractor import EntityExtractor
+from preprocessing.preprocess_intent import classify_user_intent
 from neo4j_connector import Neo4jConnector
 
 class RetrievalPipeline:
@@ -89,3 +91,40 @@ class RetrievalPipeline:
             parts.append(line)
 
         return "\n".join(parts)
+    
+
+
+def run_baseline_test(query: str, use_embeddings: bool = False, limit: int = 10):
+    """
+    Runs a full baseline retrieval test for a given query.
+    Returns a dictionary with intent, entities, baseline results and context.
+    """
+
+    print("TESTING QUERY:", query)
+
+    # 1) Intent classification
+    intent_info = classify_user_intent(query)
+    print(intent_info)
+    intent = intent_info["intent"]
+
+    # 2) Entity extraction
+    extractor = EntityExtractor()
+    entities = extractor.extract(query)
+    print(entities)
+
+    # 3) Retrieval pipeline
+    pipeline = RetrievalPipeline()
+    results = pipeline.retrieve(intent, entities, query, use_embeddings=use_embeddings, limit=limit)
+
+    # Output
+    for r in results["baseline"]:
+        print(r)
+
+    print(results["context_text"])
+
+    return {
+        "intent": intent,
+        "entities": entities,
+        "baseline": results["baseline"],
+        "context_text": results["context_text"],
+    }

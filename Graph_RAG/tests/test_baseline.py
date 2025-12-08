@@ -52,7 +52,7 @@ def run_baseline_test(query: str, use_embeddings: bool = False, limit: int = 10)
 
 # Allow running as script
 if __name__ == "__main__":
-    test_query = "I want a hotel in Cairo,Germany,and Italy for business class"
+    test_query = "I want a hotel in ,Germany,and Italy for business class"
     run_baseline_test(test_query, use_embeddings=False)
 
 

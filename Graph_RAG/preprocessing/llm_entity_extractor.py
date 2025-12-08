@@ -55,24 +55,12 @@ STRICT RULES:
    - Phrases like "in X", "to X", "going to X", "for X" → destination_country = X.
 
 4. Ratings:
-    - If user says "4 star" / "4-star" or "4 stars", interpret as stars; convert to 10-scale by multiplying by 2. (4 → 8.0).
     - If user says "above X", "at least X", ">= X", treat as operator "gte" with value X (normalize to 10-scale if X <= 5 and user clearly meant stars).
     - If user says "less than X", "< X", "under X", treat as operator "lte".
     - If user says "between A and B" or "A to B", produce operator "between" and set min/max.
     - If user only says a single numeric rating without context (e.g., "8"), assume it is a review score (10-scale).
     - Use "type": "stars" when user explicitly mentions "stars". Use "type": "score" for "8/10", "rating 8", "average rating".
-    - CONVERSION RULE:
-        Stars must ALWAYS be converted to the 10-point rating scale by:
-        score = stars * 2
-
-        1 star → 2.0
-        2 stars → 4.0
-        3 stars → 6.0
-        4 stars → 8.0
-        5 stars → 10.0
-
-        Never output values above 10 for star ratings.
-        Never use stars*4 or any other formula.
+   
 
 
 5. Hotels:
@@ -81,8 +69,8 @@ STRICT RULES:
 
 6. Output must ALWAYS be valid JSON matching the schema.
 
-7. The "cities" field must list ALL cities mentioned in the user query, 
-   including origin cities and destination cities, you can detect cities even if they were not correctly written (e.g., "new york" instead of "New York").
+7. The "cities" field must list ALL cities mentioned in the user query,
+   including origin cities and destination cities, you can detect cities even if they were not correctly written (e.g., "new york" instead of "New York"). Never include countries in this list.
 
 8. The "countries" field must list ALL countries mentioned in the user query 
    or implied by cities.

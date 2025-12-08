@@ -68,13 +68,19 @@ class BaselineRetriever:
 
 
 
-            if e.get("cities"):
-                return self.db.run_query(QUERY_TEMPLATES["hotel_search_by_city"], {"cities": e["cities"], "limit": limit})
+                        # Combined city + country search
+            if e.get("cities") or e.get("countries"):
+                return self.db.run_query(
+                    QUERY_TEMPLATES["hotel_search_by_city_or_country"],
+                    {
+                        "cities": e.get("cities", []),
+                        "countries": e.get("countries", []),
+                        "limit": limit
+                    }
+                )
 
-            if e.get("countries"):
-                return self.db.run_query(QUERY_TEMPLATES["hotel_search_by_country"], {"countries": e["countries"], "limit": limit})
 
-            # fallback free text substring
+                        # fallback free text substring
             if e.get("hotels"):
                 return self.db.run_query(QUERY_TEMPLATES["hotel_by_name_substring"], {"q": e["hotels"][0], "limit": limit})
 
