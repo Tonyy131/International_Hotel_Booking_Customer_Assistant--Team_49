@@ -16,11 +16,11 @@ class RetrievalPipeline:
         self.baseline = BaselineRetriever(connector)
         self.embed = EmbeddingRetriever(connector)
 
-    def retrieve(self, intent: str, entities: Dict[str, Any], user_query: str, use_embeddings: bool = True, limit: int = 10) -> Dict[str, Any]:
+    def retrieve(self, intent: str, entities: Dict[str, Any], user_query: str, user_embeddings: bool = True, limit: int = 10) -> Dict[str, Any]:
         baseline_results = self.baseline.retrieve(intent, entities, limit=limit)
 
         embedding_results = []
-        if use_embeddings:
+        if user_embeddings:
             # For hotel-oriented intents we search hotels + reviews
             rating_filter = entities.get("rating_filter") if entities else None
             embedding_results = self.embed.sem_search_hotels(user_query, entities, top_k=limit, rating_filter=rating_filter)
@@ -94,37 +94,61 @@ class RetrievalPipeline:
     
 
 
-def run_baseline_test(query: str, use_embeddings: bool = False, limit: int = 10):
-    """
-    Runs a full baseline retrieval test for a given query.
-    Returns a dictionary with intent, entities, baseline results and context.
-    """
+    def safe_retrieve(
+        self,
+        query: str,
+        limit: int = 10,
+        user_embeddings: bool = True,
+    ) -> Dict[str, Any]:
+        """
+        Production-safe retrieval wrapper for the final chatbot.
 
-    print("TESTING QUERY:", query)
+        - Uses extracted intent
+        - Never crashes
+        - Normalizes return format
+        - Fallbacks if something goes wrong
+        - Suitable for chatbot + experiments with real pipeline behavior
+        """
 
-    # 1) Intent classification
-    intent_info = classify_user_intent(query)
-    print(intent_info)
-    intent = intent_info["intent"]
+        # 1) Extract entities
+        extractor = EntityExtractor()
+        entities = extractor.extract(query)
 
-    # 2) Entity extraction
-    extractor = EntityExtractor()
-    entities = extractor.extract(query)
-    print(entities)
+        # 2) Classify intent
+        try:
+            intent_info = classify_user_intent(query)
+            intent = intent_info.get("intent")
+            if not intent:
+                intent = "hotel_search"     # fallback
+        except Exception:
+            intent = "hotel_search"         # fallback
 
-    # 3) Retrieval pipeline
-    pipeline = RetrievalPipeline()
-    results = pipeline.retrieve(intent, entities, query, use_embeddings=use_embeddings, limit=limit)
+        # 3) Run the actual retrieval
+        try:
+            results = self.retrieve(
+                intent=intent,
+                entities=entities,
+                user_query=query,
+                user_embeddings=user_embeddings,
+                limit=limit
+            )
+        except Exception as e:
+            # Critical failure → return safe empty structure
+            return {
+                "intent": intent,
+                "entities": entities,
+                "baseline": [],
+                "embeddings": [],
+                "combined": {"hotels": [], "reviews": []},
+                "context_text": f"[Retrieval Error: {str(e)}]"
+            }
 
-    # Output
-    for r in results["baseline"]:
-        print(r)
-
-    print(results["context_text"])
-
-    return {
-        "intent": intent,
-        "entities": entities,
-        "baseline": results["baseline"],
-        "context_text": results["context_text"],
-    }
+        # 4) Normalize structure and return clean results
+        return {
+            "intent": intent,
+            "entities": entities,
+            "baseline": results.get("baseline", []),
+            "embeddings": results.get("embeddings", []),
+            "combined": results.get("combined", {}),
+            "context_text": results.get("context_text", "")
+        }

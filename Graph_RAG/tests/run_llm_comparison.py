@@ -3,7 +3,7 @@
 This script:
 - Runs multiple hotel-related queries
 - Retrieves context via RetrievalPipeline
-- Sends context + query into 4 LLMs (Llama3, Command R+, Qwen2.5, Mistral7B)
+- Sends context + query into 4 LLMs (Llama3, Qwen2.5, Mistral7B)
 - Collects:
     - output text
     - latency
@@ -27,9 +27,8 @@ from llm.llm_answerer import answer_with_model
 # MODEL LIST
 MODEL_CANDIDATES = [
     "meta-llama/Llama-3.1-8B-Instruct",
-    "CohereLabs/c4ai-command-r-plus-08-2024",
     "Qwen/Qwen2.5-1.5B-Instruct",
-    "mistralai/Mistral-7B-Instruct-v0.2"
+    "deepseek-ai/DeepSeek-R1"
 ]
 
 
@@ -67,14 +66,10 @@ def run_experiment(models, queries, top_k=5):
         print(f"\n=== Query {q_idx+1}/{len(queries)}: {query}")
 
         
-        # Retrieve context
-        entities = rp.extract_entities(query)
-        retrieval = rp.retrieve(
-            intent="hotel_search",
-            entities=entities,
-            user_query=query,
-            use_embeddings=True,
-            limit=top_k
+        retrieval = rp.safe_retrieve(
+            query=query,
+            limit=top_k,
+            user_embeddings=True
         )
 
         # Get context text

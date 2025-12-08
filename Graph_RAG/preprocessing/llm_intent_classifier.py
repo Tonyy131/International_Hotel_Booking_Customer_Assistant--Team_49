@@ -43,7 +43,7 @@ def classify_intent_llm_hf(text: str) -> str:
 
     client = InferenceClient(
         model="deepseek-ai/DeepSeek-V3.2",
-        token=api_key
+        token=api_key,
     )
 
     try:

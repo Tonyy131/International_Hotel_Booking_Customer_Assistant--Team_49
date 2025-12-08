@@ -19,7 +19,7 @@ print(entities)
 
 print("\n=== TEST: Baseline Retrieval ===")
 pipeline = RetrievalPipeline()
-results = pipeline.retrieve(intent, entities, query, use_embeddings=False)
+results = pipeline.retrieve(intent, entities, query, user_embeddings=False)
 
 print("\nBaseline Results:")
 for r in results["baseline"]:
