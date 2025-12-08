@@ -17,6 +17,7 @@ Returns a dict:
 """
 import os 
 import time
+from typing import Dict, Any
 from huggingface_hub import InferenceClient
 
 HF_API_KEY = os.getenv("HF_API_KEY")
@@ -35,7 +36,7 @@ class HFClient:
         self.model_name = model_name
         self.client = InferenceClient(model=model_name, token=HF_API_KEY)
 
-    def generate(self, prompt: str, max_new_tokens: int = 256, temperature: float = 0.2, top_p: float = 0.95) -> dict:
+    def generate(self, prompt: str, max_new_tokens: int = 256, temperature: float = 0.2, top_p: float = 0.95) -> Dict[str, Any]:
         """        
         :param self: Description
         :param prompt: Description
@@ -52,13 +53,16 @@ class HFClient:
 
         start = time.perf_counter()
         try:
-            response = self.client.text_generation(
-                prompt,
-                max_new_tokens=max_new_tokens,
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=max_new_tokens,
                 temperature=temperature,
                 top_p=top_p,
-                stop_sequences=["===== END ====="],
+                stop=["===== END ====="],
             )
+
+            text = response.choices[0].message["content"].strip()
         except Exception as e:
             latency_s = time.perf_counter() - start
             return {
@@ -73,9 +77,9 @@ class HFClient:
 
         return {
             "model": self.model_name,
-            "text": response,
+            "text": text,
             "latency_s": latency_s,
             "approx_input_tokens": approx_token_count(prompt),
-            "approx_output_tokens": approx_token_count(response),
+            "approx_output_tokens": approx_token_count(text),
             "raw_response": response
         }
