@@ -18,7 +18,7 @@ def create_identifiers(driver):
         session.run("CREATE CONSTRAINT IF NOT EXISTS FOR (r:Review) REQUIRE r.review_id IS UNIQUE")
 
 def load_travellers(driver):
-    travellers = pd.read_csv('users.csv')
+    travellers = pd.read_csv('Knowledge_Graph_DB/users.csv')
     with driver.session() as session:
         for _, row in travellers.iterrows():
             session.run("""
@@ -40,7 +40,7 @@ def load_travellers(driver):
 
 
 def load_hotels(driver):
-    hotels = pd.read_csv('hotels.csv')
+    hotels = pd.read_csv('Knowledge_Graph_DB/hotels.csv')
     with driver.session() as session:
         for _, row in hotels.iterrows():
             session.run("""
@@ -68,7 +68,7 @@ def load_hotels(driver):
             })
 
 def load_reviews(driver):
-    reviews = pd.read_csv('reviews.csv')
+    reviews = pd.read_csv('Knowledge_Graph_DB/reviews.csv')
     with driver.session() as session:
         for _, row in reviews.iterrows():
             session.run("""
@@ -114,9 +114,25 @@ def compute_average_review_scores(driver):
             SET h.average_reviews_score = avgScore
         """)
 
+def compute_average_score_by_traveller_type(driver):
+    """
+    Computes average overall score for each traveller_type per hotel.
+    """
+    with driver.session() as session:
+        session.run("""
+            MATCH (t:Traveller)-[:WROTE]->(r:Review)-[:REVIEWED]->(h:Hotel)
+            WHERE t.type IS NOT NULL AND r.score_overall IS NOT NULL
+            
+            WITH h, t.type AS traveller_type, avg(r.score_overall) AS avgScore
+            
+            WITH h, traveller_type, avgScore,
+                 "avg_score_" + replace(toLower(traveller_type), " ", "_") AS propertyName
+            
+            SET h[propertyName] = avgScore
+        """)
 
 def load_visa(driver):
-    visas = pd.read_csv("visa.csv")
+    visas = pd.read_csv("Knowledge_Graph_DB/visa.csv")
 
     with driver.session() as session:
         for _, row in visas.iterrows():
@@ -143,7 +159,7 @@ def load_visa(driver):
 
 
 def main():
-    config = read_config("config.txt")
+    config = read_config("Knowledge_Graph_DB/config.txt")
     driver = GraphDatabase.driver(
         config["URI"],
         auth=(config["USERNAME"], config["PASSWORD"])
@@ -155,6 +171,7 @@ def main():
     load_hotels(driver)
     load_reviews(driver)
     compute_average_review_scores(driver)
+    compute_average_score_by_traveller_type(driver)
     load_visa(driver)
 
     driver.close()

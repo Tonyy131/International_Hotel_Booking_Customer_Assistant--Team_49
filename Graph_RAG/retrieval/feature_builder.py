@@ -42,6 +42,11 @@ def build_feature_text(record: Dict[str, Any]) -> str:
     if avg_review_score is not None:
         parts.append(f"Average review score: {round(avg_review_score, 1)}/10.")
 
+    for key, value in hotel.items():
+        if key.startswith("avg_score_") and value is not None:
+            ttype = key.replace("avg_score_", "").replace("_", " ").title()
+            parts.append(f"Average score for {ttype}: {value:.2f}")
+
     subs = []
     if cleanliness is not None:
         subs.append(f"cleanliness {cleanliness}")

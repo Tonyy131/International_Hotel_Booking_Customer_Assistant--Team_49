@@ -12,99 +12,89 @@ class BaselineRetriever:
         self.db = neo4j_connector or Neo4jConnector()
 
     def retrieve(self, intent: str, entities: Dict[str, Any], limit: int = 10):
-        """
-        intent: label from intent classification ('hotel_search','review_query','visa_query', etc.)
-        entities: dict produced by your EntityExtractor (see preprocessing/entity_extractor.py). :contentReference[oaicite:3]{index=3}
-        """
         intent = intent or "generic_qa"
         e = entities or {}
 
-        # Route to appropriate template:
+        def _exec_and_extract(cypher_key, params):
+            """Run template, extract hotel dicts when available."""
+            records = self.db.run_query(QUERY_TEMPLATES[cypher_key], params)
+            cleaned = []
+            for rec in records or []:
+                # If record carries a hotel map:
+                if "hotel" in rec and rec["hotel"] is not None:
+                    h = rec["hotel"]
+                    if isinstance(h, dict):
+                        h["source"] = "baseline"
+                        cleaned.append(h)
+                    else:
+                        # sometimes driver returns a Node-like object; try to coerce
+                        try:
+                            hmap = dict(h)
+                            hmap["source"] = "baseline"
+                            cleaned.append(hmap)
+                        except Exception:
+                            continue
+                else:
+                    # fallback: return the raw record (for queries like reviews or visa)
+                    cleaned.append(rec)
+            return cleaned
+
+        # --- hotel_search intent ---
         if intent == "hotel_search":
-            # priority: rating filter -> city -> country -> free text hotel name
-            # rating_filter is the structured filter from LLM
             rf = e.get("rating_filter") or {"type": "none", "operator": None}
-            cities = e.get("cities") or None         # list or None
-            countries = e.get("countries") or None   # list or None
+            cities = e.get("cities") or None
+            countries = e.get("countries") or None
 
             if rf and rf.get("type") != "none":
                 op = rf.get("operator")
                 if op == "gte" and rf.get("value") is not None:
-                    params = {
-                        "rating": rf["value"],
-                        "cities": e.get("cities"),
-                        "countries": e.get("countries"),
-                        "limit": limit,
-                    }
-                    return self.db.run_query(QUERY_TEMPLATES["hotel_search_min_rating"], params)
+                    params = {"rating": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_min_rating", params)
 
                 if op == "lte" and rf.get("value") is not None:
-                    params = {
-                        "max": rf["value"],
-                        "cities": e.get("cities"),
-                        "countries": e.get("countries"),
-                        "limit": limit,
-                    }
-                    return self.db.run_query(QUERY_TEMPLATES["hotel_search_max_rating"], params)
+                    params = {"max": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_max_rating", params)
 
                 if op == "between" and rf.get("min") is not None and rf.get("max") is not None:
-                    params = {
-                        "min": rf["min"],
-                        "max": rf["max"],
-                        "cities": e.get("cities"),
-                        "countries": e.get("countries"),
-                        "limit": limit,
-                    }
-                    return self.db.run_query(QUERY_TEMPLATES["hotel_search_rating_range"], params)
+                    params = {"min": rf["min"], "max": rf["max"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_rating_range", params)
 
                 if op == "eq" and rf.get("value") is not None:
-                    params = {
-                        "value": rf["value"],
-                        "cities": e.get("cities"),
-                        "countries": e.get("countries"),
-                        "limit": limit,
-                    }
-                    return self.db.run_query(QUERY_TEMPLATES["hotel_search_exact_rating"], params)
+                    params = {"value": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_exact_rating", params)
 
-
-
-                        # Combined city + country search
+            # Combined city + country search
             if e.get("cities") or e.get("countries"):
-                return self.db.run_query(
-                    QUERY_TEMPLATES["hotel_search_by_city_or_country"],
-                    {
-                        "cities": e.get("cities", []),
-                        "countries": e.get("countries", []),
-                        "limit": limit
-                    }
-                )
+                return _exec_and_extract("hotel_search_by_city_or_country",
+                                        {"cities": e.get("cities", []), "countries": e.get("countries", []), "limit": limit})
 
-
-                        # fallback free text substring
+            # fallback free text substring
             if e.get("hotels"):
-                return self.db.run_query(QUERY_TEMPLATES["hotel_by_name_substring"], {"q": e["hotels"][0], "limit": limit})
+                return _exec_and_extract("hotel_by_name_substring", {"q": e["hotels"][0], "limit": limit})
 
-            return self.db.run_query(QUERY_TEMPLATES["top_hotels"], {"limit": limit})
+            return _exec_and_extract("top_hotels", {"limit": limit})
 
+        # --- review_query ---
         if intent == "review_query":
             if e.get("hotels"):
                 return self.db.run_query(QUERY_TEMPLATES["hotel_reviews_by_name"], {"hotel": e["hotels"][0], "limit": limit})
             return []
 
+        # --- recommendation ---
         if intent == "recommendation":
             traveller_type = e.get("traveller_type")
             if traveller_type:
-                return self.db.run_query(QUERY_TEMPLATES["recommend_hotels_by_traveller_type"], {"traveller_type": traveller_type, "limit": limit})
-            # fallback to top hotels
-            return self.db.run_query(QUERY_TEMPLATES["top_hotels"], {"limit": limit})
+                # keep same params shape (template returns hotel + freq, _exec_and_extract will pick hotel)
+                return _exec_and_extract("recommend_hotels_by_traveller_type", {"traveller_type": traveller_type, "limit": limit})
+            return _exec_and_extract("top_hotels", {"limit": limit})
 
+        # --- visa_query ---
         if intent == "visa_query":
-            # origin/destination are lists in your extractor -> choose first if present
             origins = e.get("origin_country") or []
             dests = e.get("destination_country") or []
             if origins and dests:
                 return self.db.run_query(QUERY_TEMPLATES["visa_requirements"], {"from": origins[0], "to": dests[0]})
             return []
 
-        # Generic fallback: top hotels
-        return self.db.run_query(QUERY_TEMPLATES["top_hotels"], {"limit": limit})
+        # Generic fallback
+        return _exec_and_extract("top_hotels", {"limit": limit})
