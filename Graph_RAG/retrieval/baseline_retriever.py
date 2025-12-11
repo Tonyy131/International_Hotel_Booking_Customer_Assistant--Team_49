@@ -17,7 +17,7 @@ class BaselineRetriever:
 
         def _exec_and_extract(cypher_key, params):
             """Run template, extract hotel dicts when available."""
-            print(QUERY_TEMPLATES[cypher_key],"mizo")
+            print(QUERY_TEMPLATES[cypher_key],cypher_key)
             records = self.db.run_query(QUERY_TEMPLATES[cypher_key], params)
             cleaned = []
             for rec in records or []:
@@ -40,6 +40,7 @@ class BaselineRetriever:
                     cleaned.append(rec)
             return cleaned
 
+        print("BaselineRetriever: intent =", intent, "entities =", e)
         # --- hotel_search intent ---
         if intent == "hotel_search":
             rf = e.get("rating_filter") or {"type": "none", "operator": None}
@@ -61,6 +62,23 @@ class BaselineRetriever:
                 if op == "eq" and rf.get("value") is not None:
                     params = {"value": rf["value"], "cities": cities, "countries": countries, "limit": limit}
                     return _exec_and_extract("hotel_search_exact_stars", params)
+            elif rf and rf.get("type") == "cleanliness":
+                op = rf.get("operator")
+                if op == "gte" and rf.get("value") is not None:
+                    params = {"rating": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_min_cleanliness", params)
+
+                if op == "lte" and rf.get("value") is not None:
+                    params = {"max": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_max_cleanliness", params)
+
+                if op == "between" and rf.get("min") is not None and rf.get("max") is not None:
+                    params = {"min": rf["min"], "max": rf["max"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_cleanliness_range", params)
+
+                if op == "eq" and rf.get("value") is not None:
+                    params = {"value": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_exact_cleanliness", params)
             elif rf and rf.get("type") != "none":
                 op = rf.get("operator")
                 if op == "gte" and rf.get("value") is not None:
@@ -92,6 +110,65 @@ class BaselineRetriever:
 
         # --- review_query ---
         if intent == "review_query":
+            rf = e.get("rating_filter") or {"type": "none", "operator": None}
+            cities = e.get("cities") or None
+            countries = e.get("countries") or None
+            if rf and rf.get("type") != "none" and rf.get("type") == "stars":
+                op = rf.get("operator")
+                if op == "gte" and rf.get("value") is not None:
+                    params = {"rating": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_min_stars", params)
+
+                if op == "lte" and rf.get("value") is not None:
+                    params = {"max": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_max_stars", params)
+                if op == "between" and rf.get("min") is not None and rf.get("max") is not None:
+                    params = {"min": rf["min"], "max": rf["max"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_stars_range", params)
+
+                if op == "eq" and rf.get("value") is not None:
+                    params = {"value": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_exact_stars", params)
+            elif rf and rf.get("type") == "cleanliness":
+                op = rf.get("operator")
+                if op == "gte" and rf.get("value") is not None:
+                    params = {"rating": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_min_cleanliness", params)
+
+                if op == "lte" and rf.get("value") is not None:
+                    params = {"max": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_max_cleanliness", params)
+
+                if op == "between" and rf.get("min") is not None and rf.get("max") is not None:
+                    params = {"min": rf["min"], "max": rf["max"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_cleanliness_range", params)
+
+                if op == "eq" and rf.get("value") is not None:
+                    params = {"value": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_exact_cleanliness", params)
+            elif rf and rf.get("type") != "none":
+                op = rf.get("operator")
+                if op == "gte" and rf.get("value") is not None:
+                    params = {"rating": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_min_rating", params)
+
+                if op == "lte" and rf.get("value") is not None:
+                    params = {"max": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_max_rating", params)
+
+                if op == "between" and rf.get("min") is not None and rf.get("max") is not None:
+                    params = {"min": rf["min"], "max": rf["max"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_rating_range", params)
+
+                if op == "eq" and rf.get("value") is not None:
+                    params = {"value": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_exact_rating", params)
+
+            # Combined city + country search
+            if e.get("cities") or e.get("countries"):
+                return _exec_and_extract("hotel_search_by_city_or_country",
+                                        {"cities": e.get("cities", []), "countries": e.get("countries", []), "limit": limit})
+
             if e.get("hotels"):
                 return self.db.run_query(QUERY_TEMPLATES["hotel_reviews_by_name"], {"hotel": e["hotels"][0], "limit": limit})
             return []

@@ -82,7 +82,8 @@ class RetrievalPipeline:
         for h in hotels:
             name = h.get("name") or (h.get("h") and h.get("h").get("name"))
             avg_overall = (
-                h.get("average_reviews_score")
+                h.get("avg_score_cleanliness")
+                or h.get("average_reviews_score")
                 or h.get("avg_score")
                 or h.get("score")
             )

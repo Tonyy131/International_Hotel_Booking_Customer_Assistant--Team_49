@@ -38,6 +38,18 @@ class EmbeddingRetriever:
                 rating_clause = "AND h.star_rating >= $rating_min AND h.star_rating <= $rating_max"
                 params["rating_min"] = rating_filter["min"]
                 params["rating_max"] = rating_filter["max"]
+        elif rating_filter and rating_filter.get("type") == "cleanliness":
+            op = rating_filter.get("operator")
+            if op == "gte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.score_cleanliness >= $rating_min"
+                params["rating_min"] = rating_filter["value"]
+            elif op == "lte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.score_cleanliness <= $rating_max"
+                params["rating_max"] = rating_filter["value"]
+            elif op == "between" and rating_filter.get("min") is not None and rating_filter.get("max") is not None:
+                rating_clause = "AND h.score_cleanliness >= $rating_min AND h.score_cleanliness <= $rating_max"
+                params["rating_min"] = rating_filter["min"]
+                params["rating_max"] = rating_filter["max"]
         elif rating_filter and rating_filter.get("type") != "none":
             op = rating_filter.get("operator")
             if op == "gte" and rating_filter.get("value") is not None:
@@ -50,6 +62,8 @@ class EmbeddingRetriever:
                 rating_clause = "AND h.average_reviews_score >= $rating_min AND h.average_reviews_score <= $rating_max"
                 params["rating_min"] = rating_filter["min"]
                 params["rating_max"] = rating_filter["max"]
+        
+
 
         cypher = f"""
         MATCH (c:City)
@@ -88,6 +102,18 @@ class EmbeddingRetriever:
                 rating_clause = "AND h.star_rating >= $rating_min AND h.star_rating <= $rating_max"
                 params["rating_min"] = rating_filter["min"]
                 params["rating_max"] = rating_filter["max"]
+        elif rating_filter and rating_filter.get("type") == "cleanliness":
+            op = rating_filter.get("operator")
+            if op == "gte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.score_cleanliness >= $rating_min"
+                params["rating_min"] = rating_filter["value"]
+            elif op == "lte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.score_cleanliness <= $rating_max"
+                params["rating_max"] = rating_filter["value"]
+            elif op == "between" and rating_filter.get("min") is not None and rating_filter.get("max") is not None:
+                rating_clause = "AND h.score_cleanliness >= $rating_min AND h.score_cleanliness <= $rating_max"
+                params["rating_min"] = rating_filter["min"]
+                params["rating_max"] = rating_filter["max"]
         elif rating_filter and rating_filter.get("type") != "none":
             op = rating_filter.get("operator")
             if op == "gte" and rating_filter.get("value") is not None:
@@ -100,6 +126,8 @@ class EmbeddingRetriever:
                 rating_clause = "AND h.average_reviews_score >= $rating_min AND h.average_reviews_score <= $rating_max"
                 params["rating_min"] = rating_filter["min"]
                 params["rating_max"] = rating_filter["max"]
+        
+
 
         cypher = f"""
         MATCH (c:City)
@@ -137,6 +165,18 @@ class EmbeddingRetriever:
                 rating_clause = "AND h.star_rating >= $rating_min AND h.star_rating <= $rating_max"
                 params["rating_min"] = rating_filter["min"]
                 params["rating_max"] = rating_filter["max"]
+        elif rating_filter and rating_filter.get("type") == "cleanliness":
+            op = rating_filter.get("operator")
+            if op == "gte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.score_cleanliness >= $rating_min"
+                params["rating_min"] = rating_filter["value"]
+            elif op == "lte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.score_cleanliness <= $rating_max"
+                params["rating_max"] = rating_filter["value"]
+            elif op == "between" and rating_filter.get("min") is not None and rating_filter.get("max") is not None:
+                rating_clause = "AND h.score_cleanliness >= $rating_min AND h.score_cleanliness <= $rating_max"
+                params["rating_min"] = rating_filter["min"]
+                params["rating_max"] = rating_filter["max"]
         elif rating_filter and rating_filter.get("type") != "none":
             op = rating_filter.get("operator")
             if op == "gte" and rating_filter.get("value") is not None:
@@ -149,6 +189,8 @@ class EmbeddingRetriever:
                 rating_clause = "AND h.average_reviews_score >= $rating_min AND h.average_reviews_score <= $rating_max"
                 params["rating_min"] = rating_filter["min"]
                 params["rating_max"] = rating_filter["max"]
+        
+
 
         cypher = f"""
         MATCH (c:City)
@@ -186,6 +228,18 @@ class EmbeddingRetriever:
                 rating_clause = "AND h.star_rating >= $rating_min AND h.star_rating <= $rating_max"
                 params["rating_min"] = rating_filter["min"]
                 params["rating_max"] = rating_filter["max"]
+        elif rating_filter and rating_filter.get("type") == "cleanliness":
+            op = rating_filter.get("operator")
+            if op == "gte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.score_cleanliness >= $rating_min"
+                params["rating_min"] = rating_filter["value"]
+            elif op == "lte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.score_cleanliness <= $rating_max"
+                params["rating_max"] = rating_filter["value"]
+            elif op == "between" and rating_filter.get("min") is not None and rating_filter.get("max") is not None:
+                rating_clause = "AND h.score_cleanliness >= $rating_min AND h.score_cleanliness <= $rating_max"
+                params["rating_min"] = rating_filter["min"]
+                params["rating_max"] = rating_filter["max"]
         elif rating_filter and rating_filter.get("type") != "none":
             op = rating_filter.get("operator")
             if op == "gte" and rating_filter.get("value") is not None:
@@ -198,6 +252,8 @@ class EmbeddingRetriever:
                 rating_clause = "AND h.average_reviews_score >= $rating_min AND h.average_reviews_score <= $rating_max"
                 params["rating_min"] = rating_filter["min"]
                 params["rating_max"] = rating_filter["max"]
+        
+
 
         cypher = f"""
         MATCH (co:Country)
@@ -236,6 +292,18 @@ class EmbeddingRetriever:
                 rating_clause = "AND h.star_rating >= $rating_min AND h.star_rating <= $rating_max"
                 params["rating_min"] = rating_filter["min"]
                 params["rating_max"] = rating_filter["max"]
+        elif rating_filter and rating_filter.get("type") == "cleanliness":
+            op = rating_filter.get("operator")
+            if op == "gte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.score_cleanliness >= $rating_min"
+                params["rating_min"] = rating_filter["value"]
+            elif op == "lte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.score_cleanliness <= $rating_max"
+                params["rating_max"] = rating_filter["value"]
+            elif op == "between" and rating_filter.get("min") is not None and rating_filter.get("max") is not None:
+                rating_clause = "AND h.score_cleanliness >= $rating_min AND h.score_cleanliness <= $rating_max"
+                params["rating_min"] = rating_filter["min"]
+                params["rating_max"] = rating_filter["max"]
         elif rating_filter and rating_filter.get("type") != "none":
             op = rating_filter.get("operator")
             if op == "gte" and rating_filter.get("value") is not None:
@@ -248,6 +316,8 @@ class EmbeddingRetriever:
                 rating_clause = "AND h.average_reviews_score >= $rating_min AND h.average_reviews_score <= $rating_max"
                 params["rating_min"] = rating_filter["min"]
                 params["rating_max"] = rating_filter["max"]
+        
+
 
         cypher = f"""
         MATCH (co:Country)
