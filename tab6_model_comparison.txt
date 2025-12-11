@@ -1,0 +1,204 @@
+
+    # Tab 6: Multi-Model Comparison
+    with tab6:
+        st.markdown("### 🔬 Multi-Model LLM Comparison")
+        st.markdown("Compare different LLM models on the same query with Knowledge Graph context.")
+        
+        st.markdown("---")
+        
+        # Model selection
+        st.markdown("#### 🤖 Select Models to Compare")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            selected_models = st.multiselect(
+                "Choose models for comparison:",
+                options=MODEL_CANDIDATES,
+                default=MODEL_CANDIDATES[:2],
+                help="Select 2-4 models to compare performance and quality"
+            )
+        
+        with col2:
+            st.markdown("**Available Models:**")
+            for model in MODEL_CANDIDATES:
+                st.markdown(f"• `{model.split('/')[-1]}`")
+        
+        st.markdown("---")
+        
+        # Query input options
+        st.markdown("#### 💬 Query Selection")
+        
+        use_current_query = st.checkbox("Use current query", value=True, help="Use the query from this session")
+        
+        if use_current_query:
+            comparison_query = results.get('query', '')
+            st.info(f"**Current Query:** {comparison_query}")
+        else:
+            # Quick test queries
+            st.markdown("**Or select a test query:**")
+            test_query_choice = st.selectbox(
+                "Test Queries:",
+                options=TEST_QUERIES,
+                help="Pre-defined queries for model testing"
+            )
+            comparison_query = test_query_choice
+        
+        # Retrieval settings
+        col1, col2 = st.columns(2)
+        with col1:
+            comp_retrieval_method = st.selectbox(
+                "Retrieval Method:",
+                ["hybrid", "baseline", "embedding"],
+                index=0,
+                help="Method for retrieving KG context"
+            )
+        with col2:
+            comp_top_k = st.slider("Top K Results:", min_value=3, max_value=20, value=5, help="Number of results to retrieve")
+        
+        st.markdown("---")
+        
+        # Run comparison button
+        if st.button("🚀 Run Multi-Model Comparison", type="primary", use_container_width=True, disabled=len(selected_models) < 2 if 'selected_models' in locals() else True):
+            if len(selected_models) < 2:
+                st.error("Please select at least 2 models for comparison.")
+            elif not comparison_query or len(comparison_query.strip()) == 0:
+                st.error("Please provide a query for comparison.")
+            else:
+                with st.spinner("Running multi-model comparison..."):
+                    comparison_results = run_multi_model_comparison(
+                        query=comparison_query,
+                        selected_models=selected_models,
+                        retrieval_method=comp_retrieval_method,
+                        top_k=comp_top_k
+                    )
+                    st.session_state.comparison_results = comparison_results
+        
+        # Display comparison results
+        if st.session_state.comparison_results and len(st.session_state.comparison_results) > 0:
+            st.markdown("---")
+            st.markdown("### 📊 Comparison Results")
+            
+            comp_results = st.session_state.comparison_results
+            
+            # Summary metrics
+            st.markdown("#### ⚡ Performance Summary")
+            metric_cols = st.columns(len(comp_results))
+            
+            for idx, result in enumerate(comp_results):
+                with metric_cols[idx]:
+                    st.markdown(f'<div class="metric-card">', unsafe_allow_html=True)
+                    st.markdown(f"**{result['model_short']}**")
+                    if result['success']:
+                        st.markdown(f"✅ Success")
+                        st.markdown(f"⏱️ {result['end_to_end_latency_s']:.2f}s")
+                        st.markdown(f"📝 {result['approx_output_tokens']} tokens")
+                    else:
+                        st.markdown(f"❌ Failed")
+                        st.markdown(f"Error: {result['error'][:50]}..." if result['error'] else "Unknown error")
+                    st.markdown('</div>', unsafe_allow_html=True)
+            
+            st.markdown("---")
+            
+            # Detailed comparison table
+            st.markdown("#### 📋 Detailed Comparison")
+            
+            import pandas as pd
+            df_data = []
+            for r in comp_results:
+                df_data.append({
+                    "Model": r['model_short'],
+                    "Status": "✅ Success" if r['success'] else "❌ Failed",
+                    "Latency (s)": f"{r['end_to_end_latency_s']:.3f}" if r['end_to_end_latency_s'] else "N/A",
+                    "Input Tokens": r['approx_input_tokens'] or "N/A",
+                    "Output Tokens": r['approx_output_tokens'] or "N/A",
+                    "Response Length": len(r['response_text']) if r['response_text'] else 0
+                })
+            
+            df = pd.DataFrame(df_data)
+            st.dataframe(df, use_container_width=True)
+            
+            st.markdown("---")
+            
+            # Response comparison
+            st.markdown("#### 💬 Response Comparison")
+            
+            for idx, result in enumerate(comp_results, 1):
+                with st.expander(f"🤖 {result['model_short']} - Response", expanded=(idx==1)):
+                    if result['success']:
+                        st.markdown(f"**Response:**")
+                        st.markdown(f'<div class="answer-box">{result["response_text"]}</div>', unsafe_allow_html=True)
+                        
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("Latency", f"{result['end_to_end_latency_s']:.3f}s")
+                        with col2:
+                            st.metric("Input Tokens", result['approx_input_tokens'] or "N/A")
+                        with col3:
+                            st.metric("Output Tokens", result['approx_output_tokens'] or "N/A")
+                    else:
+                        st.error(f"❌ Model failed: {result['error']}")
+            
+            st.markdown("---")
+            
+            # Export comparison results
+            st.markdown("#### 📥 Export Comparison")
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                # JSON export
+                comparison_json = json.dumps(comp_results, indent=2)
+                st.download_button(
+                    "📥 Download JSON",
+                    data=comparison_json,
+                    file_name=f"model_comparison_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                    mime="application/json",
+                    use_container_width=True
+                )
+            
+            with col2:
+                # CSV export
+                csv_data = df.to_csv(index=False)
+                st.download_button(
+                    "📊 Download CSV",
+                    data=csv_data,
+                    file_name=f"model_comparison_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+            
+            with col3:
+                # Summary report
+                report = f"""Multi-Model Comparison Report
+{'='*60}
+
+Query: {comparison_query}
+Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+Models Tested: {len(comp_results)}
+
+"""
+                for r in comp_results:
+                    report += f"\n{'-'*60}\n"
+                    report += f"Model: {r['model']}\n"
+                    report += f"Status: {'Success' if r['success'] else 'Failed'}\n"
+                    if r['success']:
+                        report += f"Latency: {r['end_to_end_latency_s']:.3f}s\n"
+                        report += f"Tokens (In/Out): {r['approx_input_tokens']}/{r['approx_output_tokens']}\n"
+                        report += f"\nResponse:\n{r['response_text']}\n"
+                    else:
+                        report += f"Error: {r['error']}\n"
+                
+                st.download_button(
+                    "📄 Download Report",
+                    data=report,
+                    file_name=f"comparison_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                    mime="text/plain",
+                    use_container_width=True
+                )
+            
+            st.markdown("---")
+            st.success("💡 **Tip:** Use this comparison to select the best model for your use case based on speed, quality, and token efficiency.")
+        
+        elif st.session_state.comparison_results is not None:
+            st.warning("No comparison results available. Please run a comparison first.")
+

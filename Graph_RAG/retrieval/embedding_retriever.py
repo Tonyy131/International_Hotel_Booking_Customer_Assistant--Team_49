@@ -33,7 +33,12 @@ class EmbeddingRetriever:
             "top_k": top_k
         }
 
-        return self.db.run_query(cypher, params)
+        try:
+            return self.db.run_query(cypher, params)
+        except Exception as e:
+            # Vector index doesn't exist - return empty results
+            print(f"Vector index error (returning empty): {e}")
+            return []
 
     # SINGLE CITY
     def sem_search_hotels_in_city(self, city: str, embedding: List[float], top_k: int = 10, rating_filter: dict = None):
@@ -70,7 +75,12 @@ class EmbeddingRetriever:
         ORDER BY score DESC
         LIMIT $top_k
         """
-        return self.db.run_query(cypher, params)
+        try:
+            return self.db.run_query(cypher, params)
+        except Exception as e:
+            # Vector index doesn't exist - return empty results
+            print(f'Vector index error in city search (returning empty): {e}')
+            return []
 
     # MULTIPLE CITIES
     def sem_search_hotels_in_cities(self, cities: List[str], embedding: List[float], top_k: int = 10, rating_filter: dict = None):
@@ -107,7 +117,11 @@ class EmbeddingRetriever:
         ORDER BY score DESC
         LIMIT $top_k
         """
-        return self.db.run_query(cypher, params)
+        try:
+            return self.db.run_query(cypher, params)
+        except Exception as e:
+            print(f"Vector index error in multi-city search (returning empty): {e}")
+            return []
 
     # SINGLE COUNTRY
     def sem_search_hotels_in_country(self, country: str, embedding: List[float], top_k: int = 10, rating_filter: dict = None):
@@ -145,7 +159,11 @@ class EmbeddingRetriever:
         ORDER BY score DESC
         LIMIT $top_k
         """
-        return self.db.run_query(cypher, params)
+        try:
+            return self.db.run_query(cypher, params)
+        except Exception as e:
+            print(f"Vector index error in country search (returning empty): {e}")
+            return []
 
     # MULTIPLE COUNTRIES
     def sem_search_hotels_in_countries(self, countries: List[str], embedding: List[float], top_k: int = 10, rating_filter: dict = None):
@@ -183,34 +201,43 @@ class EmbeddingRetriever:
         ORDER BY score DESC
         LIMIT $top_k
         """
-        return self.db.run_query(cypher, params)
+        try:
+            return self.db.run_query(cypher, params)
+        except Exception as e:
+            print(f"Vector index error in multi-country search (returning empty): {e}")
+            return []
 
     # MAIN ENTRY POINT
     def sem_search_hotels(self, query: str, entities, top_k: int = 10, rating_filter: dict = None):
-        embedding = self.encoder.encode(query)
+        try:
+            embedding = self.encoder.encode(query)
 
-        cities = entities.get("cities", [])
-        countries = entities.get("countries", [])
+            cities = entities.get("cities", [])
+            countries = entities.get("countries", [])
 
-        # MULTI-CITY
-        if len(cities) > 1:
-            return self.sem_search_hotels_in_cities(cities, embedding, top_k, rating_filter)
+            # MULTI-CITY
+            if len(cities) > 1:
+                return self.sem_search_hotels_in_cities(cities, embedding, top_k, rating_filter)
 
-        # SINGLE CITY
-        if len(cities) == 1:
-            results = self.sem_search_hotels_in_city(cities[0], embedding, top_k, rating_filter)
-            if results:
-                return results
+            # SINGLE CITY
+            if len(cities) == 1:
+                results = self.sem_search_hotels_in_city(cities[0], embedding, top_k, rating_filter)
+                if results:
+                    return results
 
-        # MULTI-COUNTRY
-        if len(countries) > 1:
-            return self.sem_search_hotels_in_countries(countries, embedding, top_k, rating_filter)
+            # MULTI-COUNTRY
+            if len(countries) > 1:
+                return self.sem_search_hotels_in_countries(countries, embedding, top_k, rating_filter)
 
-        # SINGLE COUNTRY
-        if len(countries) == 1:
-            results = self.sem_search_hotels_in_country(countries[0], embedding, top_k, rating_filter)
-            if results:
-                return results
+            # SINGLE COUNTRY
+            if len(countries) == 1:
+                results = self.sem_search_hotels_in_country(countries[0], embedding, top_k, rating_filter)
+                if results:
+                    return results
 
-        # GLOBAL FALLBACK
-        return self.sem_search_hotels_global(embedding, top_k)
+            # GLOBAL FALLBACK
+            return self.sem_search_hotels_global(embedding, top_k)
+        except Exception as e:
+            # Any error in embedding search - return empty results
+            print(f"Embedding search error (returning empty): {e}")
+            return []
