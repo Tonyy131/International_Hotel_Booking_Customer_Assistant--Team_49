@@ -17,6 +17,7 @@ class BaselineRetriever:
 
         def _exec_and_extract(cypher_key, params):
             """Run template, extract hotel dicts when available."""
+            print(QUERY_TEMPLATES[cypher_key],"mizo")
             records = self.db.run_query(QUERY_TEMPLATES[cypher_key], params)
             cleaned = []
             for rec in records or []:
@@ -44,8 +45,23 @@ class BaselineRetriever:
             rf = e.get("rating_filter") or {"type": "none", "operator": None}
             cities = e.get("cities") or None
             countries = e.get("countries") or None
+            if rf and rf.get("type") != "none" and rf.get("type") == "stars":
+                op = rf.get("operator")
+                if op == "gte" and rf.get("value") is not None:
+                    params = {"rating": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_min_stars", params)
 
-            if rf and rf.get("type") != "none":
+                if op == "lte" and rf.get("value") is not None:
+                    params = {"max": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_max_stars", params)
+                if op == "between" and rf.get("min") is not None and rf.get("max") is not None:
+                    params = {"min": rf["min"], "max": rf["max"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_stars_range", params)
+
+                if op == "eq" and rf.get("value") is not None:
+                    params = {"value": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_exact_stars", params)
+            elif rf and rf.get("type") != "none":
                 op = rf.get("operator")
                 if op == "gte" and rf.get("value") is not None:
                     params = {"rating": rf["value"], "cities": cities, "countries": countries, "limit": limit}

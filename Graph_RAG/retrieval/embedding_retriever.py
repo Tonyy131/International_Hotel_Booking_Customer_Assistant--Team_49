@@ -19,27 +19,76 @@ class EmbeddingRetriever:
         self.index_name = index_name
 
     # GLOBAL SEARCH (no filters)
-    def sem_search_hotels_global(self, embedding: List[float], top_k: int = 10):
-        cypher = """
-        CALL db.index.vector.queryNodes($index_name, $top_k, $embedding)
-        YIELD node, score
-        RETURN node.name AS name, node.hotel_id AS hotel_id, score
-        ORDER BY score DESC
-        """
-
+    def sem_search_hotels_global(self, embedding: List[float], top_k: int = 10, rating_filter: dict = None):
+        rating_clause = ""
         params = {
             "index_name": self.index_name,
             "embedding": embedding,
             "top_k": top_k
         }
+        if rating_filter and rating_filter.get("type") != "none" and rating_filter.get("type") == "stars":
+            op = rating_filter.get("operator")
+            if op == "gte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.star_rating >= $rating_min"
+                params["rating_min"] = rating_filter["value"]
+            elif op == "lte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.star_rating <= $rating_max"
+                params["rating_max"] = rating_filter["value"]
+            elif op == "between" and rating_filter.get("min") is not None and rating_filter.get("max") is not None:
+                rating_clause = "AND h.star_rating >= $rating_min AND h.star_rating <= $rating_max"
+                params["rating_min"] = rating_filter["min"]
+                params["rating_max"] = rating_filter["max"]
+        elif rating_filter and rating_filter.get("type") != "none":
+            op = rating_filter.get("operator")
+            if op == "gte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.average_reviews_score >= $rating_min"
+                params["rating_min"] = rating_filter["value"]
+            elif op == "lte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.average_reviews_score <= $rating_max"
+                params["rating_max"] = rating_filter["value"]
+            elif op == "between" and rating_filter.get("min") is not None and rating_filter.get("max") is not None:
+                rating_clause = "AND h.average_reviews_score >= $rating_min AND h.average_reviews_score <= $rating_max"
+                params["rating_min"] = rating_filter["min"]
+                params["rating_max"] = rating_filter["max"]
+
+        cypher = f"""
+        MATCH (c:City)
+
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c)
+        WHERE h.embedding_minilm IS NOT NULL
+        {rating_clause}
+
+        WITH collect(h) AS hotels
+
+        CALL db.index.vector.queryNodes($index_name, $top_k, $embedding)
+        YIELD node, score
+        WHERE node IN hotels
+
+        RETURN node.name AS name, node.hotel_id AS hotel_id, score
+        ORDER BY score DESC
+        LIMIT $top_k
+        """
 
         return self.db.run_query(cypher, params)
+
 
     # SINGLE CITY
     def sem_search_hotels_in_city(self, city: str, embedding: List[float], top_k: int = 10, rating_filter: dict = None):
         rating_clause = ""
         params = {"city": city, "index_name": self.index_name, "embedding": embedding, "top_k": top_k}
-        if rating_filter and rating_filter.get("type") != "none":
+        if rating_filter and rating_filter.get("type") != "none" and rating_filter.get("type") == "stars":
+            op = rating_filter.get("operator")
+            if op == "gte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.star_rating >= $rating_min"
+                params["rating_min"] = rating_filter["value"]
+            elif op == "lte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.star_rating <= $rating_max"
+                params["rating_max"] = rating_filter["value"]
+            elif op == "between" and rating_filter.get("min") is not None and rating_filter.get("max") is not None:
+                rating_clause = "AND h.star_rating >= $rating_min AND h.star_rating <= $rating_max"
+                params["rating_min"] = rating_filter["min"]
+                params["rating_max"] = rating_filter["max"]
+        elif rating_filter and rating_filter.get("type") != "none":
             op = rating_filter.get("operator")
             if op == "gte" and rating_filter.get("value") is not None:
                 rating_clause = "AND h.average_reviews_score >= $rating_min"
@@ -76,7 +125,19 @@ class EmbeddingRetriever:
     def sem_search_hotels_in_cities(self, cities: List[str], embedding: List[float], top_k: int = 10, rating_filter: dict = None):
         rating_clause = ""
         params = {"cities": [c.lower() for c in cities], "index_name": self.index_name, "embedding": embedding, "top_k": top_k}
-        if rating_filter and rating_filter.get("type") != "none":
+        if rating_filter and rating_filter.get("type") != "none" and rating_filter.get("type") == "stars":
+            op = rating_filter.get("operator")
+            if op == "gte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.star_rating >= $rating_min"
+                params["rating_min"] = rating_filter["value"]
+            elif op == "lte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.star_rating <= $rating_max"
+                params["rating_max"] = rating_filter["value"]
+            elif op == "between" and rating_filter.get("min") is not None and rating_filter.get("max") is not None:
+                rating_clause = "AND h.star_rating >= $rating_min AND h.star_rating <= $rating_max"
+                params["rating_min"] = rating_filter["min"]
+                params["rating_max"] = rating_filter["max"]
+        elif rating_filter and rating_filter.get("type") != "none":
             op = rating_filter.get("operator")
             if op == "gte" and rating_filter.get("value") is not None:
                 rating_clause = "AND h.average_reviews_score >= $rating_min"
@@ -113,7 +174,19 @@ class EmbeddingRetriever:
     def sem_search_hotels_in_country(self, country: str, embedding: List[float], top_k: int = 10, rating_filter: dict = None):
         rating_clause = ""
         params = {"country": country, "index_name": self.index_name, "embedding": embedding, "top_k": top_k}
-        if rating_filter and rating_filter.get("type") != "none":
+        if rating_filter and rating_filter.get("type") != "none" and rating_filter.get("type") == "stars":
+            op = rating_filter.get("operator")
+            if op == "gte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.star_rating >= $rating_min"
+                params["rating_min"] = rating_filter["value"]
+            elif op == "lte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.star_rating <= $rating_max"
+                params["rating_max"] = rating_filter["value"]
+            elif op == "between" and rating_filter.get("min") is not None and rating_filter.get("max") is not None:
+                rating_clause = "AND h.star_rating >= $rating_min AND h.star_rating <= $rating_max"
+                params["rating_min"] = rating_filter["min"]
+                params["rating_max"] = rating_filter["max"]
+        elif rating_filter and rating_filter.get("type") != "none":
             op = rating_filter.get("operator")
             if op == "gte" and rating_filter.get("value") is not None:
                 rating_clause = "AND h.average_reviews_score >= $rating_min"
@@ -151,7 +224,19 @@ class EmbeddingRetriever:
     def sem_search_hotels_in_countries(self, countries: List[str], embedding: List[float], top_k: int = 10, rating_filter: dict = None):
         rating_clause = ""
         params = {"countries": [co.lower() for co in countries], "index_name": self.index_name, "embedding": embedding, "top_k": top_k}
-        if rating_filter and rating_filter.get("type") != "none":
+        if rating_filter and rating_filter.get("type") != "none" and rating_filter.get("type") == "stars":
+            op = rating_filter.get("operator")
+            if op == "gte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.star_rating >= $rating_min"
+                params["rating_min"] = rating_filter["value"]
+            elif op == "lte" and rating_filter.get("value") is not None:
+                rating_clause = "AND h.star_rating <= $rating_max"
+                params["rating_max"] = rating_filter["value"]
+            elif op == "between" and rating_filter.get("min") is not None and rating_filter.get("max") is not None:
+                rating_clause = "AND h.star_rating >= $rating_min AND h.star_rating <= $rating_max"
+                params["rating_min"] = rating_filter["min"]
+                params["rating_max"] = rating_filter["max"]
+        elif rating_filter and rating_filter.get("type") != "none":
             op = rating_filter.get("operator")
             if op == "gte" and rating_filter.get("value") is not None:
                 rating_clause = "AND h.average_reviews_score >= $rating_min"
@@ -213,4 +298,4 @@ class EmbeddingRetriever:
                 return results
 
         # GLOBAL FALLBACK
-        return self.sem_search_hotels_global(embedding, top_k)
+        return self.sem_search_hotels_global(embedding, top_k,rating_filter)
