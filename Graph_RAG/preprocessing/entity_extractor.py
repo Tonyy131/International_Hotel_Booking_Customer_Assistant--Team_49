@@ -43,22 +43,13 @@ class EntityExtractor:
         if not rf or rf.get("type") == "none":
             return {"type": "none", "operator": None, "value": None, "min": None, "max": None}
         out = rf.copy()
-        if rf.get("type") == "stars":
-            # convert star values (assume 1..5) to 10-scale
-            if rf.get("value") is not None:
-                out["value"] = float(rf["value"]) * 2.0
-            if rf.get("min") is not None:
-                out["min"] = float(rf["min"]) * 2.0
-            if rf.get("max") is not None:
-                out["max"] = float(rf["max"]) * 2.0
-        else:
             # ensure floats
-            if rf.get("value") is not None:
-                out["value"] = float(rf["value"])
-            if rf.get("min") is not None:
-                out["min"] = float(rf["min"])
-            if rf.get("max") is not None:
-                out["max"] = float(rf["max"])
+        if rf.get("value") is not None:
+            out["value"] = float(rf["value"])
+        if rf.get("min") is not None:
+            out["min"] = float(rf["min"])
+        if rf.get("max") is not None:
+            out["max"] = float(rf["max"])
         return out
 
 

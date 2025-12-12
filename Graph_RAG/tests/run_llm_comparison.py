@@ -42,7 +42,7 @@ TEST_QUERIES = [
     "Which hotels in Tokyo have excellent cleanliness?",
     "Is a visa needed to travel from Egypt to Germany?",
     "Find boutique hotels in Paris.",
-    "What are the best hotels in Istanbul for business travellers?",
+    "What are the best hotels for business travellers?",
 ]
 
 

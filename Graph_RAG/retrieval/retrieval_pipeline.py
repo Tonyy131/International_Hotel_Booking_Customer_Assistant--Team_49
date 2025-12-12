@@ -1,4 +1,3 @@
-# Graph_RAG/retrieval/retrieval_pipeline.py
 from typing import Dict, Any, List
 from retrieval.baseline_retriever import BaselineRetriever
 from retrieval.embedding_retriever import EmbeddingRetriever
@@ -11,11 +10,12 @@ class RetrievalPipeline:
     Orchestrates baseline + embedding retrieval and merges results into a single context
     structure suitable for feeding to the LLM prompt builder.
     """
-    def __init__(self, neo4j_connector: Neo4jConnector = None):
+    def __init__(self, neo4j_connector: Neo4jConnector = None, model_name: str = "minilm"):
         connector = neo4j_connector or Neo4jConnector()
         self.baseline = BaselineRetriever(connector)
-        self.embed = EmbeddingRetriever(connector)
-
+        self.model_name = model_name
+        self.embed = EmbeddingRetriever(connector, model_name=model_name)
+        
     def retrieve(self, intent: str, entities: Dict[str, Any], user_query: str, user_embeddings: bool = True, limit: int = 10) -> Dict[str, Any]:
         baseline_results = self.baseline.retrieve(intent, entities, limit=limit)
 
@@ -82,11 +82,27 @@ class RetrievalPipeline:
         parts.append("Retrieved hotels:")
         for h in hotels:
             name = h.get("name") or (h.get("h") and h.get("h").get("name"))
-            avg = h.get("avg_score") or h.get("average_reviews_score") or h.get("score")
+            avg_overall = (
+                h.get("avg_score_cleanliness")
+                or h.get("average_reviews_score")
+                or h.get("avg_score")
+                or h.get("score")
+            )
+
+            # Collect traveller type scores
+            ttype_scores = [
+                f"{k.replace('avg_score_', '').replace('_',' ').title()}: {v:.2f}"
+                for k, v in h.items()
+                if k.startswith("avg_score_") and isinstance(v, (int, float))
+            ]
             src = h.get("source", "unknown")
             line = f"- {name}"
-            if avg is not None:
-                line += f" (avg_score={avg})"
+            if avg_overall is not None:
+                line += f" (avg_score={avg_overall:.2f})"
+            if ttype_scores:
+                line += "\n    Traveller-type scores:"
+                for ts in ttype_scores:
+                    line += f"\n      • {ts}"
             line += f"  [via: {src}]"
             parts.append(line)
 

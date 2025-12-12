@@ -21,8 +21,12 @@ class EmbeddingEncoder:
     def __init__(self, model_name="minilm"):
         if model_name == "bge":
             self.model = SentenceTransformer(self.MODEL_2_NAME)
+            self.dim = 768
+            self.is_bge = True
         else:
             self.model = SentenceTransformer(self.MODEL_NAME)
+            self.dim = 384
+            self.is_bge = False
 
     def encode(self, text: str) -> List[float]:
         """

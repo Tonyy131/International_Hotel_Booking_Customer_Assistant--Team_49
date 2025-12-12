@@ -32,6 +32,11 @@ REQUIREMENTS:
 - No punctuation.
 - No quotes.
 - No sentences.
+
+REMARKS:
+- If a user asks about cleanliness, facilities, or amenities, classify as "hotel_search".
+- If a user query is ambiguous, choose the most relevant intent based on the definitions above.
+- If a user says "I want a hotel", classify as "hotel_search" WHATEVER WAS THE REST OF THE SENTENCE.
 """
 
 

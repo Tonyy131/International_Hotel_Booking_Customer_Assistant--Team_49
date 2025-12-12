@@ -11,12 +11,7 @@ QUERY_TEMPLATES = {
     "hotel_search_by_city": """
         MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)
         WHERE c.name IN $cities
-        RETURN
-            h.name AS name,
-            h.hotel_id AS hotel_id,
-            h.star_rating AS stars,
-            h.average_reviews_score AS avg_score,
-            c.name AS city
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name } AS hotel
         ORDER BY c.name, h.average_reviews_score DESC
         LIMIT $limit
     """,
@@ -25,7 +20,7 @@ QUERY_TEMPLATES = {
     "hotel_search_by_country": """
         MATCH (h:Hotel)-[:LOCATED_IN]->(:City)-[:LOCATED_IN]->(co:Country)
         WHERE co.name IN $countries
-        RETURN h.name AS name, h.hotel_id AS hotel_id, h.star_rating AS stars, h.average_reviews_score AS avg_score
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, country: co.name } AS hotel        
         ORDER BY h.average_reviews_score DESC
         LIMIT $limit
     """,
@@ -36,9 +31,18 @@ QUERY_TEMPLATES = {
         WHERE h.average_reviews_score >= $rating
         AND ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
-        RETURN h.name AS name, h.hotel_id AS hotel_id, h.star_rating AS stars,
-            h.average_reviews_score AS avg_score, c.name AS city
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name } AS hotel
         ORDER BY h.average_reviews_score DESC
+        LIMIT $limit
+    """,
+    # Search hotels with minimum star rating
+    "hotel_search_min_stars": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        WHERE h.star_rating >= $stars
+        AND ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+        AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name } AS hotel
+        ORDER BY h.star_rating DESC
         LIMIT $limit
     """,
 
@@ -46,11 +50,7 @@ QUERY_TEMPLATES = {
     "hotel_search_min_avg_score": """
         MATCH (h:Hotel)
         WHERE h.average_reviews_score >= $min_score
-        RETURN 
-            h.name AS name,
-            h.hotel_id AS hotel_id,
-            h.star_rating AS stars,
-            h.average_reviews_score AS avg_score
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score } AS hotel
         ORDER BY h.average_reviews_score DESC
         LIMIT $limit
     """,
@@ -73,10 +73,13 @@ QUERY_TEMPLATES = {
     # Recommend hotels based on traveller type (simple co-occurrence)
     "recommend_hotels_by_traveller_type": """
         MATCH (t:Traveller {type: $traveller_type})-[:STAYED_AT]->(h:Hotel)
-        RETURN h.name AS name, h.hotel_id AS hotel_id, count(*) AS freq, h.average_reviews_score AS avg_score
-        ORDER BY freq DESC, h.average_reviews_score DESC
+        WITH h, count(*) AS freq, h.average_reviews_score AS avgScore
+        ORDER BY freq DESC, avgScore DESC
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, average_reviews_score: avgScore } AS hotel,
+            freq
         LIMIT $limit
     """,
+
 
     # Visa requirement between two countries
     "visa_requirements": """
@@ -88,7 +91,7 @@ QUERY_TEMPLATES = {
     "hotel_by_name_substring": """
         MATCH (h:Hotel)
         WHERE toLower(h.name) CONTAINS toLower($q)
-        RETURN h.name AS name, h.hotel_id AS hotel_id, h.average_reviews_score AS avg_score
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, average_reviews_score: h.average_reviews_score } AS hotel
         ORDER BY h.average_reviews_score DESC
         LIMIT $limit
     """,
@@ -96,7 +99,7 @@ QUERY_TEMPLATES = {
     # Top N hotels overall
     "top_hotels": """
         MATCH (h:Hotel)
-        RETURN h.name AS name, h.hotel_id AS hotel_id, h.average_reviews_score AS avg_score
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, average_reviews_score: h.average_reviews_score } AS hotel
         ORDER BY h.average_reviews_score DESC
         LIMIT $limit
     """,
@@ -112,28 +115,19 @@ QUERY_TEMPLATES = {
     "best_hotel_overall": """
         MATCH (h:Hotel)
         WHERE h.average_reviews_score IS NOT NULL
-        RETURN 
-            h.name AS name,
-            h.hotel_id AS hotel_id,
-            h.star_rating AS stars,
-            h.average_reviews_score AS avg_score
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score } AS hotel
         ORDER BY h.average_reviews_score DESC
         LIMIT $limit
     """,
 
     # Search hotels by city or country
     "hotel_search_by_city_or_country": """
-    MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
-    WHERE c.name IN $cities
-       OR co.name IN $countries
-    RETURN
-        h.name AS name,
-        h.hotel_id AS hotel_id,
-        c.name AS city,
-        co.name AS country,
-        h.average_reviews_score AS avg_score
-    ORDER BY h.average_reviews_score DESC
-    LIMIT $limit
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        WHERE c.name IN $cities
+        OR co.name IN $countries
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, city: c.name, country: co.name, average_reviews_score: h.average_reviews_score } AS hotel
+        ORDER BY h.average_reviews_score DESC
+        LIMIT $limit
     """,
 
     # rating range (min AND max)
@@ -142,11 +136,21 @@ QUERY_TEMPLATES = {
         WHERE h.average_reviews_score >= $min AND h.average_reviews_score <= $max
         AND ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
-        RETURN h.name AS name, h.hotel_id AS hotel_id, h.star_rating AS stars,
-            h.average_reviews_score AS avg_score, c.name AS city
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name } AS hotel
         ORDER BY h.average_reviews_score DESC
         LIMIT $limit
     """,
+        
+    "hotel_search_stars_range": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        WHERE h.star_rating >= $min AND h.star_rating <= $max
+        AND ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+        AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name } AS hotel
+        ORDER BY h.star_rating DESC
+        LIMIT $limit
+    """,
+
 
     # rating less-or-equal (upper bound)
     "hotel_search_max_rating": """
@@ -154,22 +158,147 @@ QUERY_TEMPLATES = {
         WHERE h.average_reviews_score <= $max
         AND ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
-        RETURN h.name AS name, h.hotel_id AS hotel_id, h.star_rating AS stars,
-            h.average_reviews_score AS avg_score, c.name AS city
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name } AS hotel
         ORDER BY h.average_reviews_score DESC
         LIMIT $limit
     """,
+    # star rating less-or-equal (upper bound)
+    "hotel_search_max_stars": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        WHERE h.star_rating <= $max
+        AND ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+        AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name } AS hotel
+        ORDER BY h.star_rating DESC
+        LIMIT $limit
+    """,
+
 
     # exact rating
     "hotel_search_exact_rating": """
         MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
-        WHERE h.average_reviews_score = $value AND ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities) AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
-        RETURN h.name AS name, h.hotel_id AS hotel_id, h.star_rating AS stars, h.average_reviews_score AS avg_score
+        WHERE floor(h.average_reviews_score * 10) / 10 = $value AND ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities) AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score } AS hotel
         ORDER BY h.average_reviews_score DESC
         LIMIT $limit
     """,
+    # exact star rating
+    "hotel_search_exact_stars": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        WHERE h.star_rating = $value
+        AND ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+        AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name } AS hotel
+        ORDER BY h.star_rating DESC
+        LIMIT $limit
+    """,
+        # Search hotels with minimum average cleanliness score (ratings are on Rating nodes)
+    "hotel_search_min_cleanliness": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+          AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, co, avg(r.score_cleanliness) AS avg_cleanliness
+        WHERE avg_cleanliness >= $rating
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
+                   average_reviews_score: h.average_reviews_score, avg_score_cleanliness: avg_cleanliness, city: c.name } AS hotel
+        ORDER BY avg_cleanliness DESC
+        LIMIT $limit
+    """,
 
+    # Search hotels with maximum average cleanliness score (upper bound)
+    "hotel_search_max_cleanliness": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+          AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, co, avg(r.score_cleanliness) AS avg_cleanliness
+        WHERE avg_cleanliness <= $max
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
+                   average_reviews_score: h.average_reviews_score, avg_score_cleanliness: avg_cleanliness, city: c.name } AS hotel
+        ORDER BY avg_cleanliness DESC
+        LIMIT $limit
+    """,
+
+    # Search hotels with cleanliness avg in a range
+    "hotel_search_cleanliness_range": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+          AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, co, avg(r.score_cleanliness) AS avg_cleanliness
+        WHERE avg_cleanliness >= $min AND avg_cleanliness <= $max
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
+                   average_reviews_score: h.average_reviews_score, avg_score_cleanliness: avg_cleanliness, city: c.name } AS hotel
+        ORDER BY avg_cleanliness DESC
+        LIMIT $limit
+    """,
+
+    # Search hotels with exact average cleanliness value
+    "hotel_search_exact_cleanliness": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+          AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, co, avg(r.score_cleanliness) AS avg_cleanliness
+        WHERE floor(avg_cleanliness * 10) / 10 = $value
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
+                   average_reviews_score: h.average_reviews_score, avg_score_cleanliness: avg_cleanliness, city: c.name } AS hotel
+        ORDER BY avg_cleanliness DESC
+        LIMIT $limit
+    """,
+
+    # hotels with highest cleanliness ratings
+
+    "top_hotel_cleanliness": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+        AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, avg(r.score_cleanliness) AS avg_cleanliness
+        WHERE avg_cleanliness IS NOT NULL
+        RETURN h {
+            .*, 
+            hotel_id: h.hotel_id,
+            name: h.name,
+            star_rating: h.star_rating,
+            average_reviews_score: h.average_reviews_score,
+            avg_score_cleanliness: avg_cleanliness,
+            city: c.name
+        } AS hotel
+        ORDER BY avg_cleanliness DESC
+        LIMIT $limit
+    """,
+
+    # hotels with lowest cleanliness ratings
+    "worst_hotel_cleanliness": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+        AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, avg(r.score_cleanliness) AS avg_cleanliness
+        WHERE avg_cleanliness IS NOT NULL
+        RETURN h {
+            .*, 
+            hotel_id: h.hotel_id,
+            name: h.name,
+            star_rating: h.star_rating,
+            average_reviews_score: h.average_reviews_score,
+            avg_score_cleanliness: avg_cleanliness,
+            city: c.name
+        } AS hotel
+        ORDER BY avg_cleanliness ASC
+        LIMIT $limit
+    """,
     
-
+    # hotels with lowest ratings
+    "worst_hotels": """
+        MATCH (h:Hotel)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+        AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, average_reviews_score: h.average_reviews_score } AS hotel
+        ORDER BY h.average_reviews_score ASC
+        LIMIT $limit
+    """,
 
 }
