@@ -16,23 +16,22 @@ class EmbeddingIndexer:
         self.encoder = EmbeddingEncoder(model_name=model_name)
         if model_name == "bge":
             self.property_name = "embedding_bge"
+            self.index_name = "hotel_embedding_bge_idx"
+            self.dimensions = 768
         else:
             self.property_name = "embedding_minilm"
+            self.index_name = "hotel_embedding_minilm_idx"
+            self.dimensions = 384
+
 
     def ensure_vector_index(self):
-        if self.property_name == "embedding_minilm":
-            dims = 384
-            index_name = "hotel_embedding_minilm_idx"
-        else:
-            dims = 768
-            index_name = "hotel_embedding_bge_idx"
 
         cypher = f"""
-        CREATE VECTOR INDEX {index_name} IF NOT EXISTS
+        CREATE VECTOR INDEX {self.index_name} IF NOT EXISTS
         FOR (h:Hotel) ON (h.{self.property_name})
         OPTIONS {{
         indexConfig: {{
-            `vector.dimensions`: {dims},
+            `vector.dimensions`: {self.dimensions},
             `vector.similarity_function`: 'cosine'
         }}
         }};

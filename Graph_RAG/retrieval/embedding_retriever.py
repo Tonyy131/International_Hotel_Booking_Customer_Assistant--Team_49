@@ -13,10 +13,18 @@ class EmbeddingRetriever:
       - Country-filtered semantic search (single or multiple)
     """
 
-    def __init__(self, neo4j_connector: Neo4jConnector = None, index_name: str = "hotel_embedding_minilm_idx", model_name: str = "minilm"):
+    def __init__(self, neo4j_connector: Neo4jConnector = None, model_name: str = "minilm"):
         self.db = neo4j_connector or Neo4jConnector()
         self.encoder = EmbeddingEncoder(model_name=model_name)
-        self.index_name = index_name
+        if model_name == "bge":
+            self.property_name = "embedding_bge"
+            self.index_name = "hotel_embedding_bge_idx"
+            self.dimensions = 768
+        else:
+            self.property_name = "embedding_minilm"
+            self.index_name = "hotel_embedding_minilm_idx"
+            self.dimensions = 384
+
 
     # GLOBAL SEARCH (no filters)
     def sem_search_hotels_global(self, embedding: List[float], top_k: int = 10, rating_filter: dict = None):
@@ -69,12 +77,12 @@ class EmbeddingRetriever:
         MATCH (c:City)
 
         MATCH (h:Hotel)-[:LOCATED_IN]->(c)
-        WHERE h.embedding_minilm IS NOT NULL
+        WHERE h.%s IS NOT NULL
         {rating_clause}
 
         WITH collect(h) AS hotels
 
-        CALL db.index.vector.queryNodes($index_name, $top_k, $embedding)
+        CALL db.index.vector.queryNodes('{self.index_name}', $top_k, $embedding)
         YIELD node, score
         WHERE node IN hotels
 
@@ -82,6 +90,8 @@ class EmbeddingRetriever:
         ORDER BY score DESC
         LIMIT $top_k
         """
+
+        cypher = cypher % self.property_name
 
         return self.db.run_query(cypher, params)
 
@@ -134,12 +144,12 @@ class EmbeddingRetriever:
         WHERE toLower(c.name) = toLower($city)
 
         MATCH (h:Hotel)-[:LOCATED_IN]->(c)
-        WHERE h.embedding_minilm IS NOT NULL
+        WHERE h.%s IS NOT NULL
         {rating_clause}
 
         WITH collect(h) AS hotels
 
-        CALL db.index.vector.queryNodes($index_name, $top_k, $embedding)
+        CALL db.index.vector.queryNodes('{self.index_name}', $top_k, $embedding)
         YIELD node, score
         WHERE node IN hotels
 
@@ -147,6 +157,9 @@ class EmbeddingRetriever:
         ORDER BY score DESC
         LIMIT $top_k
         """
+
+        cypher = cypher % self.property_name
+
         return self.db.run_query(cypher, params)
 
     # MULTIPLE CITIES
@@ -197,12 +210,12 @@ class EmbeddingRetriever:
         WHERE toLower(c.name) IN $cities
 
         MATCH (h:Hotel)-[:LOCATED_IN]->(c)
-        WHERE h.embedding_minilm IS NOT NULL
+        WHERE h.%s IS NOT NULL
         {rating_clause}
 
         WITH collect(h) AS hotels
 
-        CALL db.index.vector.queryNodes($index_name, $top_k, $embedding)
+        CALL db.index.vector.queryNodes('{self.index_name}', $top_k, $embedding)
         YIELD node, score
         WHERE node IN hotels
 
@@ -210,6 +223,9 @@ class EmbeddingRetriever:
         ORDER BY score DESC
         LIMIT $top_k
         """
+
+        cypher = cypher % self.property_name
+
         return self.db.run_query(cypher, params)
 
     # SINGLE COUNTRY
@@ -261,12 +277,12 @@ class EmbeddingRetriever:
 
         MATCH (c:City)-[:LOCATED_IN]->(co)
         MATCH (h:Hotel)-[:LOCATED_IN]->(c)
-        WHERE h.embedding_minilm IS NOT NULL
+        WHERE h.%s IS NOT NULL
         {rating_clause}
 
         WITH collect(h) AS hotels
 
-        CALL db.index.vector.queryNodes($index_name, $top_k, $embedding)
+        CALL db.index.vector.queryNodes('{self.index_name}', $top_k, $embedding)
         YIELD node, score
         WHERE node IN hotels
 
@@ -274,6 +290,9 @@ class EmbeddingRetriever:
         ORDER BY score DESC
         LIMIT $top_k
         """
+
+        cypher = cypher % self.property_name
+
         return self.db.run_query(cypher, params)
 
     # MULTIPLE COUNTRIES
@@ -325,12 +344,12 @@ class EmbeddingRetriever:
 
         MATCH (c:City)-[:LOCATED_IN]->(co)
         MATCH (h:Hotel)-[:LOCATED_IN]->(c)
-        WHERE h.embedding_minilm IS NOT NULL
+        WHERE h.%s IS NOT NULL
         {rating_clause}
 
         WITH collect(h) AS hotels
 
-        CALL db.index.vector.queryNodes($index_name, $top_k, $embedding)
+        CALL db.index.vector.queryNodes('{self.index_name}', $top_k, $embedding)
         YIELD node, score
         WHERE node IN hotels
 
@@ -338,6 +357,9 @@ class EmbeddingRetriever:
         ORDER BY score DESC
         LIMIT $top_k
         """
+
+        cypher = cypher % self.property_name
+
         return self.db.run_query(cypher, params)
 
     # MAIN ENTRY POINT

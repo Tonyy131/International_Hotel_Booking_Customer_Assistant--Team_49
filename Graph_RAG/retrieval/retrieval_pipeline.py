@@ -10,11 +10,12 @@ class RetrievalPipeline:
     Orchestrates baseline + embedding retrieval and merges results into a single context
     structure suitable for feeding to the LLM prompt builder.
     """
-    def __init__(self, neo4j_connector: Neo4jConnector = None):
+    def __init__(self, neo4j_connector: Neo4jConnector = None, model_name: str = "minilm"):
         connector = neo4j_connector or Neo4jConnector()
         self.baseline = BaselineRetriever(connector)
-        self.embed = EmbeddingRetriever(connector)
-
+        self.model_name = model_name
+        self.embed = EmbeddingRetriever(connector, model_name=model_name)
+        
     def retrieve(self, intent: str, entities: Dict[str, Any], user_query: str, user_embeddings: bool = True, limit: int = 10) -> Dict[str, Any]:
         baseline_results = self.baseline.retrieve(intent, entities, limit=limit)
 
