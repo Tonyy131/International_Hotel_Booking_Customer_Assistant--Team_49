@@ -79,6 +79,15 @@ class BaselineRetriever:
                 if op == "eq" and rf.get("value") is not None:
                     params = {"value": rf["value"], "cities": cities, "countries": countries, "limit": limit}
                     return _exec_and_extract("hotel_search_exact_cleanliness", params)
+                
+                if op == "gte" :
+                    params = {"cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("top_hotel_cleanliness", params)
+                
+                if op == "lte" :
+                    params = {"cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("worst_hotel_cleanliness", params)
+                
             elif rf and rf.get("type") != "none":
                 op = rf.get("operator")
                 if op == "gte" and rf.get("value") is not None:
@@ -96,6 +105,14 @@ class BaselineRetriever:
                 if op == "eq" and rf.get("value") is not None:
                     params = {"value": rf["value"], "cities": cities, "countries": countries, "limit": limit}
                     return _exec_and_extract("hotel_search_exact_rating", params)
+                
+                if op == "gte" :
+                    params = {"cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("top_hotels", params)
+                
+                if op == "lte" :
+                    params = {"cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("worst_hotels", params)
 
             # Combined city + country search
             if e.get("cities") or e.get("countries"):
