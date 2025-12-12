@@ -58,7 +58,7 @@
         st.markdown("---")
         
         # Run comparison button
-        if st.button("🚀 Run Multi-Model Comparison", type="primary", use_container_width=True, disabled=len(selected_models) < 2 if 'selected_models' in locals() else True):
+        if st.button("🚀 Run Multi-Model Comparison", type="primary", width='stretch=True, disabled=len(selected_models) < 2 if 'selected_models' in locals() else True):
             if len(selected_models) < 2:
                 st.error("Please select at least 2 models for comparison.")
             elif not comparison_query or len(comparison_query.strip()) == 0:
@@ -115,7 +115,7 @@
                 })
             
             df = pd.DataFrame(df_data)
-            st.dataframe(df, use_container_width=True)
+            st.dataframe(df, width='stretch=True)
             
             st.markdown("---")
             
@@ -153,7 +153,7 @@
                     data=comparison_json,
                     file_name=f"model_comparison_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                     mime="application/json",
-                    use_container_width=True
+                    width='stretch=True
                 )
             
             with col2:
@@ -164,7 +164,7 @@
                     data=csv_data,
                     file_name=f"model_comparison_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                     mime="text/csv",
-                    use_container_width=True
+                    width='stretch=True
                 )
             
             with col3:
@@ -193,7 +193,7 @@ Models Tested: {len(comp_results)}
                     data=report,
                     file_name=f"comparison_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
                     mime="text/plain",
-                    use_container_width=True
+                    width='stretch=True
                 )
             
             st.markdown("---")
