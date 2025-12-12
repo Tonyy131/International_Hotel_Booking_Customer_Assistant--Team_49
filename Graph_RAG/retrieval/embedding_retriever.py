@@ -364,31 +364,31 @@ class EmbeddingRetriever:
 
     # MAIN ENTRY POINT
     def sem_search_hotels(self, query: str, entities, top_k: int = 10, rating_filter: dict = None):
-        try:
-            embedding = self.encoder.encode(query)
+    
+        embedding = self.encoder.encode(query)
 
-            cities = entities.get("cities", [])
-            countries = entities.get("countries", [])
+        cities = entities.get("cities", [])
+        countries = entities.get("countries", [])
 
-            # MULTI-CITY
-            if len(cities) > 1:
-                return self.sem_search_hotels_in_cities(cities, embedding, top_k, rating_filter)
+        # MULTI-CITY
+        if len(cities) > 1:
+            return self.sem_search_hotels_in_cities(cities, embedding, top_k, rating_filter)
 
-            # SINGLE CITY
-            if len(cities) == 1:
-                results = self.sem_search_hotels_in_city(cities[0], embedding, top_k, rating_filter)
-                if results:
-                    return results
+        # SINGLE CITY
+        if len(cities) == 1:
+            results = self.sem_search_hotels_in_city(cities[0], embedding, top_k, rating_filter)
+            if results:
+                return results
 
-            # MULTI-COUNTRY
-            if len(countries) > 1:
-                return self.sem_search_hotels_in_countries(countries, embedding, top_k, rating_filter)
+        # MULTI-COUNTRY
+        if len(countries) > 1:
+            return self.sem_search_hotels_in_countries(countries, embedding, top_k, rating_filter)
 
-            # SINGLE COUNTRY
-            if len(countries) == 1:
-                results = self.sem_search_hotels_in_country(countries[0], embedding, top_k, rating_filter)
-                if results:
-                    return results
+        # SINGLE COUNTRY
+        if len(countries) == 1:
+            results = self.sem_search_hotels_in_country(countries[0], embedding, top_k, rating_filter)
+            if results:
+                return results
 
         # GLOBAL FALLBACK
         return self.sem_search_hotels_global(embedding, top_k,rating_filter)
