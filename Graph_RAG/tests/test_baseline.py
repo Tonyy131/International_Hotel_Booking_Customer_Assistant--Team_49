@@ -5,7 +5,7 @@ from preprocessing.entity_extractor import EntityExtractor
 from retrieval.retrieval_pipeline import RetrievalPipeline
 
 
-query = "Find best hotels with cleanliness"
+query = "Find best hotels with cleanliness between 7 and 9"
 
 print("\n=== TEST: Intent Classification ===")
 intent_info = classify_user_intent(query)

@@ -290,7 +290,7 @@ QUERY_TEMPLATES = {
         ORDER BY avg_cleanliness ASC
         LIMIT $limit
     """,
-    
+
     # hotels with lowest ratings
     "worst_hotels": """
         MATCH (h:Hotel)
@@ -300,5 +300,102 @@ QUERY_TEMPLATES = {
         ORDER BY h.average_reviews_score ASC
         LIMIT $limit
     """,
+
+        # Search hotels with minimum average comfort score
+    "hotel_search_min_comfort": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+          AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, co, avg(r.score_comfort) AS avg_comfort
+        WHERE avg_comfort >= $rating
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
+                   average_reviews_score: h.average_reviews_score, avg_score_comfort: avg_comfort, city: c.name } AS hotel
+        ORDER BY avg_comfort DESC
+        LIMIT $limit
+    """,
+
+    # upper bound comfort
+    "hotel_search_max_comfort": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+          AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, co, avg(r.score_comfort) AS avg_comfort
+        WHERE avg_comfort <= $max
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
+                   average_reviews_score: h.average_reviews_score, avg_score_comfort: avg_comfort, city: c.name } AS hotel
+        ORDER BY avg_comfort DESC
+        LIMIT $limit
+    """,
+
+    # comfort range
+    "hotel_search_comfort_range": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+          AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, co, avg(r.score_comfort) AS avg_comfort
+        WHERE avg_comfort >= $min AND avg_comfort <= $max
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
+                   average_reviews_score: h.average_reviews_score, avg_score_comfort: avg_comfort, city: c.name } AS hotel
+        ORDER BY avg_comfort DESC
+        LIMIT $limit
+    """,
+
+    # exact comfort match
+    "hotel_search_exact_comfort": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+          AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, co, avg(r.score_comfort) AS avg_comfort
+        WHERE floor(avg_comfort * 10) / 10 = $value
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
+                   average_reviews_score: h.average_reviews_score, avg_score_comfort: avg_comfort, city: c.name } AS hotel
+        ORDER BY avg_comfort DESC
+        LIMIT $limit
+    """,
+    # hotels with highest comfort ratings
+    "top_hotel_comfort": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+        AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, avg(r.score_comfort) AS avg_comfort
+        WHERE avg_comfort IS NOT NULL
+        RETURN h {
+            .*, 
+            hotel_id: h.hotel_id,
+            name: h.name,
+            star_rating: h.star_rating,
+            average_reviews_score: h.average_reviews_score,
+            avg_score_comfort: avg_comfort,
+            city: c.name
+        } AS hotel
+        ORDER BY avg_comfort DESC
+        LIMIT $limit
+    """,
+    # hotels with lowest comfort ratings
+    "worst_hotel_comfort": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+        AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, avg(r.score_comfort) AS avg_comfort
+        WHERE avg_comfort IS NOT NULL
+        RETURN h {
+            .*, 
+            hotel_id: h.hotel_id,
+            name: h.name,
+            star_rating: h.star_rating,
+            average_reviews_score: h.average_reviews_score,
+            avg_score_comfort: avg_comfort,
+            city: c.name
+        } AS hotel
+        ORDER BY avg_comfort ASC
+        LIMIT $limit
+    """,
+
 
 }

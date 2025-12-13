@@ -6,7 +6,7 @@ from llm.llm_answerer import answer_with_model
 MODEL = "Qwen/Qwen2.5-1.5B-Instruct"
 
 TEST_QUERIES = [
-    "Find me hotels with score of 9",
+    "Best hotel with a score cleanliness between 7 and 9",
 ]
 
 def run_simple_qwen_test():
