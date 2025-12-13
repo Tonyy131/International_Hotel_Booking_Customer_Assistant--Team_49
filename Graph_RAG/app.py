@@ -18,17 +18,68 @@ st.set_page_config(
     layout="wide"
 )
 
+# --- Sidebar Configuration (Moved up for Initialization) ---
+with st.sidebar:
+    st.title("⚙️ Settings")
+    
+    # Requirement: Compare at least 3 models
+    model_name = st.selectbox(
+        "Select LLM Model",
+        options=[
+            "Qwen/Qwen2.5-1.5B-Instruct",
+            "meta-llama/Llama-3.1-8B-Instruct", 
+            "mistralai/Mistral-7B-Instruct-v0.2"
+        ],
+        index=0
+    )
+
+    # NEW: Embedding Model Selection
+    # Maps user-friendly names to internal keys expected by RetrievalPipeline
+    embedding_option = st.radio(
+        "Embedding Model",
+        options=["MiniLM (ll-MiniLM-L6-v2)", "BGE (bge-small-en-v1.5)"],
+        index=0
+    )
+    
+    # Map selection to backend keys
+    if "MiniLM" in embedding_option:
+        selected_embedding_model = "minilm"
+    else:
+        selected_embedding_model = "bge"
+
+    # Requirement: Retrieval Method Selection
+    retrieval_method = st.radio(
+        "Retrieval Strategy",
+        options=["Hybrid (Baseline + Embeddings)", "Baseline Only", "Embeddings Only"],
+        index=0
+    )
+    
+    # Logic mapping for the pipeline flags
+    use_embeddings = True
+    use_baseline = True
+    if retrieval_method == "Baseline Only":
+        use_embeddings = False
+    elif retrieval_method == "Embeddings Only":
+        use_baseline = False
+
+    st.divider()
+    if st.button("🗑️ Clear Chat History"):
+        st.session_state.messages = []
+        st.rerun()
+
 # --- 1. Robust Initialization ---
-@st.cache_resource(show_spinner="Connecting to Knowledge Graph...")
-def get_pipeline():
+# Update cache to depend on the selected embedding model
+@st.cache_resource(show_spinner=f"Loading Knowledge Graph with {selected_embedding_model}...")
+def get_pipeline(embedding_model_name: str):
     """
-    Initialize the RetrievalPipeline once and cache it. 
-    This prevents connection drops/stale states on subsequent queries.
+    Initialize the RetrievalPipeline. 
+    Arguments are hashed; changing the model_name will reload the pipeline.
     """
-    return RetrievalPipeline()
+    return RetrievalPipeline(model_name=embedding_model_name)
 
 try:
-    pipeline = get_pipeline()
+    # Pass the selected model from sidebar to the pipeline
+    pipeline = get_pipeline(selected_embedding_model)
     backend_ready = True
 except Exception as e:
     st.error(f"Failed to connect to Knowledge Graph: {e}")
@@ -40,7 +91,7 @@ if "messages" not in st.session_state:
 
 # --- 2. Visualization Helper ---
 def visualize_subgraph(hotels: List[Dict]):
-    """Creates a Plotly network graph from retrieved hotel nodes[cite: 101, 103]."""
+    """Creates a Plotly network graph from retrieved hotel nodes."""
     if not hotels:
         return None
 
@@ -113,52 +164,16 @@ def visualize_subgraph(hotels: List[Dict]):
              ))
     return fig
 
-# --- 3. Sidebar Configuration ---
-with st.sidebar:
-    st.title("⚙️ Settings")
-    
-    # [cite_start]Requirement: Compare at least 3 models [cite: 77, 113]
-    model_name = st.selectbox(
-        "Select LLM Model",
-        options=[
-            "Qwen/Qwen2.5-1.5B-Instruct",
-            "meta-llama/Llama-3.1-8B-Instruct", 
-            "mistralai/Mistral-7B-Instruct-v0.2"
-        ],
-        index=0
-    )
-
-    # [cite_start]Requirement: Retrieval Method Selection [cite: 116]
-    retrieval_method = st.radio(
-        "Retrieval Strategy",
-        options=["Hybrid (Baseline + Embeddings)", "Baseline Only", "Embeddings Only"],
-        index=0
-    )
-    
-    # Logic mapping for the pipeline flags
-    use_embeddings = True
-    use_baseline = True
-    if retrieval_method == "Baseline Only":
-        use_embeddings = False
-    elif retrieval_method == "Embeddings Only":
-        use_baseline = False
-
-    st.divider()
-    if st.button("🗑️ Clear Chat History"):
-        st.session_state.messages = []
-        st.rerun()
-
 # --- 4. Main Chat Interface ---
 st.title("🌍 Graph-RAG Travel Assistant")
-st.markdown("Ask about hotels, visas, or reviews. The system uses **Neo4j Graph Retrieval** to ground answers.")
+st.markdown(f"Ask about hotels, visas, or reviews. \n\n*Current Embedding Model: `{selected_embedding_model}`*")
 
 # Render Chat History
-# FIX: Use enumerate to get a unique index 'i' for unique keys
 for i, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
         
-        # [cite_start]Requirement: View KG-retrieved context, Cypher queries, & Visualization [cite: 91, 97, 101]
+        # Requirement: View KG-retrieved context, Cypher queries, & Visualization
         if "data" in msg:
             with st.expander(f"🔍 View Graph Reasoning (Found {len(msg['data'].get('combined',{}).get('hotels',[]))} nodes)"):
                 
@@ -208,7 +223,7 @@ if prompt := st.chat_input("Ex: Find high-rated hotels in Cairo"):
                 start_time = time.perf_counter()
                 
                 # A. Retrieval Step
-                status_box.write("Extracting entities & querying Knowledge Graph...")
+                status_box.write(f"Querying Graph (Embeddings: {selected_embedding_model})...")
                 
                 # Calling the cached pipeline - safe_retrieve handles errors gracefully
                 retrieval_result = pipeline.safe_retrieve(
@@ -239,7 +254,7 @@ if prompt := st.chat_input("Ex: Find high-rated hotels in Cairo"):
                 total_time = time.perf_counter() - start_time
                 status_box.update(label="✅ Complete", state="complete", expanded=False)
                 
-                # [cite_start]Display Result [cite: 94]
+                # Display Result
                 st.markdown(response_text)
                 st.caption(f"⏱️ Total: {total_time:.2f}s | LLM: {latency:.2f}s | Nodes Retrieved: {len(retrieval_result.get('combined',{}).get('hotels',[]))}")
 
