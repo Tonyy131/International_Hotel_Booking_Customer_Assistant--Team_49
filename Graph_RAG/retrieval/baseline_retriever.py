@@ -155,7 +155,30 @@ class BaselineRetriever:
                     return _exec_and_extract("top_hotel_staff", params)
                 if op == "lte" :
                     params = {"cities": cities, "countries": countries, "limit": limit}
-                    return _exec_and_extract("worst_hotel_staff", params)  
+                    return _exec_and_extract("worst_hotel_staff", params)
+            elif rf and rf.get("type") == "money":
+                op = rf.get("operator")
+                if op == "gte" and (rf.get("value") is not None and rf.get("value") != 0):
+                    params = {"rating": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_min_value_for_money", params)
+
+                if op == "lte" and (rf.get("value") is not None and rf.get("value") != 0):
+                    params = {"max": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_max_value_for_money", params)
+
+                if op == "between" and rf.get("min") is not None and rf.get("max") is not None:
+                    params = {"min": rf["min"], "max": rf["max"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_value_for_money_range", params)
+
+                if op == "eq" and (rf.get("value") is not None and rf.get("value") != 0):
+                    params = {"value": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_exact_value_for_money", params)  
+                if op == "gte" :
+                    params = {"cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("top_hotel_value_for_money", params)
+                if op == "lte" :
+                    params = {"cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("worst_hotel_value_for_money", params)
             elif rf and rf.get("type") != "none":
                 op = rf.get("operator")
                 if op == "gte" and (rf.get("value") is not None and rf.get("value") != 0):
@@ -282,6 +305,23 @@ class BaselineRetriever:
                 if op == "eq" and (rf.get("value") is not None and rf.get("value") != 0):
                     params = {"value": rf["value"], "cities": cities, "countries": countries, "limit": limit}
                     return _exec_and_extract("hotel_search_exact_staff", params)
+            elif rf and rf.get("type") == "money":
+                op = rf.get("operator")
+                if op == "gte" and (rf.get("value") is not None and rf.get("value") != 0):
+                    params = {"rating": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_min_value_formoney", params)
+                
+                if op == "lte" and (rf.get("value") is not None and rf.get("value") != 0):
+                    params = {"max": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_max_value_for_money", params)
+                
+                if op == "between" and rf.get("min") is not None and rf.get("max") is not None:
+                    params = {"min": rf["min"], "max": rf["max"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_value_for_money_range", params)
+                
+                if op == "eq" and (rf.get("value") is not None and rf.get("value") != 0):
+                    params = {"value": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_exact_value_for_money", params)
             elif rf and rf.get("type") != "none":
                 op = rf.get("operator")
                 if op == "gte" and (rf.get("value") is not None and rf.get("value") != 0):

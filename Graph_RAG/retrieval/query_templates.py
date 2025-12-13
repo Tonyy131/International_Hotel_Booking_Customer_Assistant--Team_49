@@ -689,5 +689,125 @@ QUERY_TEMPLATES = {
         ORDER BY avg_staff ASC
         LIMIT $limit
     """,
+    # Search hotels with minimum average value for money score
+    "hotel_search_min_value_for_money": """
+    MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+    OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+    WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+      AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+    WITH h, c, co, avg(r.score_value_for_money) AS avg_value
+    WHERE avg_value >= $rating
+    RETURN h {
+        .*,
+        hotel_id: h.hotel_id,
+        name: h.name,
+        star_rating: h.star_rating,
+        average_reviews_score: h.average_reviews_score,
+        avg_score_value_for_money: avg_value,
+        city: c.name
+    } AS hotel
+    ORDER BY avg_value DESC
+    LIMIT $limit
+    """,
+    # Search hotels with maximum average value for money score
+    "hotel_search_max_value_for_money": """
+    MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+    OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+    WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+      AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+    WITH h, c, co, avg(r.score_value_for_money) AS avg_value
+    WHERE avg_value <= $max
+    RETURN h {
+        .*,
+        hotel_id: h.hotel_id,
+        name: h.name,
+        star_rating: h.star_rating,
+        average_reviews_score: h.average_reviews_score,
+        avg_score_value_for_money: avg_value,
+        city: c.name
+    } AS hotel
+    ORDER BY avg_value DESC
+    LIMIT $limit
+    """,
+    # Search hotels with value for money avg in a range
+    "hotel_search_value_for_money_range": """
+    MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+    OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+    WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+      AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+    WITH h, c, co, avg(r.score_value_for_money) AS avg_value
+    WHERE avg_value >= $min AND avg_value <= $max
+    RETURN h {
+        .*,
+        hotel_id: h.hotel_id,
+        name: h.name,
+        star_rating: h.star_rating,
+        average_reviews_score: h.average_reviews_score,
+        avg_score_value_for_money: avg_value,
+        city: c.name
+    } AS hotel
+    ORDER BY avg_value DESC
+    LIMIT $limit
+    """,
+    # Search hotels with exact average value for money value
+    "hotel_search_exact_value_for_money": """
+    MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+    OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+    WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+      AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+    WITH h, c, co, avg(r.score_value_for_money) AS avg_value
+    WHERE floor(avg_value * 10) / 10 = $value
+    RETURN h {
+        .*,
+        hotel_id: h.hotel_id,
+        name: h.name,
+        star_rating: h.star_rating,
+        average_reviews_score: h.average_reviews_score,
+        avg_score_value_for_money: avg_value,
+        city: c.name
+    } AS hotel
+    ORDER BY avg_value DESC
+    LIMIT $limit
+    """,
+    # Hotels with highest value for money ratings
+    "top_hotel_value_for_money": """
+    MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+    OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+    WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+      AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+    WITH h, c, avg(r.score_value_for_money) AS avg_value
+    WHERE avg_value IS NOT NULL
+    RETURN h {
+        .*,
+        hotel_id: h.hotel_id,
+        name: h.name,
+        star_rating: h.star_rating,
+        average_reviews_score: h.average_reviews_score,
+        avg_score_value_for_money: avg_value,
+        city: c.name
+    } AS hotel
+    ORDER BY avg_value DESC
+    LIMIT $limit
+    """,
+    # Hotels with lowest value for money ratings
+    "worst_hotel_value_for_money": """
+    MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+    OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+    WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+      AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+    WITH h, c, avg(r.score_value_for_money) AS avg_value
+    WHERE avg_value IS NOT NULL
+    RETURN h {
+        .*,
+        hotel_id: h.hotel_id,
+        name: h.name,
+        star_rating: h.star_rating,
+        average_reviews_score: h.average_reviews_score,
+        avg_score_value_for_money: avg_value,
+        city: c.name
+    } AS hotel
+    ORDER BY avg_value ASC
+    LIMIT $limit
+    """,
 
 }
