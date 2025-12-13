@@ -32,7 +32,7 @@ SCHEMA:
         "rating": float
     },
     "rating_filter": {
-        "type": "none|stars|cleanliness|comfort|score",
+        "type": "none|stars|cleanliness|comfort|facilities|score",
         "operator": "gte|lte|between|eq|null",
         "value": number|null,
         "min": number|null,

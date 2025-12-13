@@ -87,7 +87,6 @@ class BaselineRetriever:
                 if op == "lte" :
                     params = {"cities": cities, "countries": countries, "limit": limit}
                     return _exec_and_extract("worst_hotel_cleanliness", params)
-                
             elif rf and rf.get("type") == "comfort":
                 op = rf.get("operator")
                 if op == "gte" and (rf.get("value") is not None and rf.get("value") != 0):
@@ -111,6 +110,29 @@ class BaselineRetriever:
                 if op == "lte" :
                     params = {"cities": cities, "countries": countries, "limit": limit}
                     return _exec_and_extract("worst_hotel_comfort", params) 
+            elif rf and rf.get("type") == "facilities":
+                op = rf.get("operator")
+                if op == "gte" and (rf.get("value") is not None and rf.get("value") != 0):
+                    params = {"rating": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_min_facilities", params)
+
+                if op == "lte" and (rf.get("value") is not None and rf.get("value") != 0):
+                    params = {"max": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_max_facilities", params)
+
+                if op == "between" and rf.get("min") is not None and rf.get("max") is not None:
+                    params = {"min": rf["min"], "max": rf["max"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_facilities_range", params)
+
+                if op == "eq" and (rf.get("value") is not None and rf.get("value") != 0):
+                    params = {"value": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_exact_facilities", params)  
+                if op == "gte" :
+                    params = {"cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("top_hotel_facilities", params)
+                if op == "lte" :
+                    params = {"cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("worst_hotel_facilities", params) 
             elif rf and rf.get("type") != "none":
                 op = rf.get("operator")
                 if op == "gte" and (rf.get("value") is not None and rf.get("value") != 0):
@@ -203,7 +225,23 @@ class BaselineRetriever:
                 if op == "eq" and (rf.get("value") is not None and rf.get("value") != 0):
                     params = {"value": rf["value"], "cities": cities, "countries": countries, "limit": limit}
                     return _exec_and_extract("hotel_search_exact_comfort", params)
+            elif rf and rf.get("type") == "facilities":
+                op = rf.get("operator")
+                if op == "gte" and (rf.get("value") is not None and rf.get("value") != 0):
+                    params = {"rating": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_min_facilities", params)
                 
+                if op == "lte" and (rf.get("value") is not None and rf.get("value") != 0):
+                    params = {"max": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_max_facilities", params)
+                
+                if op == "between" and rf.get("min") is not None and rf.get("max") is not None:
+                    params = {"min": rf["min"], "max": rf["max"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_facilities_range", params)
+                
+                if op == "eq" and (rf.get("value") is not None and rf.get("value") != 0):
+                    params = {"value": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("hotel_search_exact_facilities", params)
             elif rf and rf.get("type") != "none":
                 op = rf.get("operator")
                 if op == "gte" and (rf.get("value") is not None and rf.get("value") != 0):

@@ -444,5 +444,130 @@ QUERY_TEMPLATES = {
         ORDER BY h.average_reviews_score DESC
         LIMIT $limit
     """,
+    # Search hotels with minimum average facilities score
+    "hotel_search_min_facilities": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+        AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, co, avg(r.score_facilities) AS avg_facilities
+        WHERE avg_facilities >= $rating
+        RETURN h {
+            .*,
+            hotel_id: h.hotel_id,
+            name: h.name,
+            star_rating: h.star_rating,
+            average_reviews_score: h.average_reviews_score,
+            avg_score_facilities: avg_facilities,
+            city: c.name
+        } AS hotel
+        ORDER BY avg_facilities DESC
+        LIMIT $limit
+    """,
+
+    # Search hotels with maximum average facilities score
+    "hotel_search_max_facilities": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+        AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, co, avg(r.score_facilities) AS avg_facilities
+        WHERE avg_facilities <= $max
+        RETURN h {
+            .*,
+            hotel_id: h.hotel_id,
+            name: h.name,
+            star_rating: h.star_rating,
+            average_reviews_score: h.average_reviews_score,
+            avg_score_facilities: avg_facilities,
+            city: c.name
+        } AS hotel
+        ORDER BY avg_facilities DESC
+        LIMIT $limit
+    """,
+
+    # Search hotels with facilities avg in a range
+    "hotel_search_facilities_range": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+        AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, co, avg(r.score_facilities) AS avg_facilities
+        WHERE avg_facilities >= $min AND avg_facilities <= $max
+        RETURN h {
+            .*,
+            hotel_id: h.hotel_id,
+            name: h.name,
+            star_rating: h.star_rating,
+            average_reviews_score: h.average_reviews_score,
+            avg_score_facilities: avg_facilities,
+            city: c.name
+        } AS hotel
+        ORDER BY avg_facilities DESC
+        LIMIT $limit
+    """,
+
+    # Search hotels with exact average facilities value
+    "hotel_search_exact_facilities": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+        AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, co, avg(r.score_facilities) AS avg_facilities
+        WHERE floor(avg_facilities * 10) / 10 = $value
+        RETURN h {
+            .*,
+            hotel_id: h.hotel_id,
+            name: h.name,
+            star_rating: h.star_rating,
+            average_reviews_score: h.average_reviews_score,
+            avg_score_facilities: avg_facilities,
+            city: c.name
+        } AS hotel
+        ORDER BY avg_facilities DESC
+        LIMIT $limit
+    """,
+
+    # Hotels with highest facilities ratings
+    "top_hotel_facilities": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+        AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, avg(r.score_facilities) AS avg_facilities
+        WHERE avg_facilities IS NOT NULL
+        RETURN h {
+            .*,
+            hotel_id: h.hotel_id,
+            name: h.name,
+            star_rating: h.star_rating,
+            average_reviews_score: h.average_reviews_score,
+            avg_score_facilities: avg_facilities,
+            city: c.name
+        } AS hotel
+        ORDER BY avg_facilities DESC
+        LIMIT $limit
+    """,
+
+    # Hotels with lowest facilities ratings
+    "worst_hotel_facilities": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+        AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, avg(r.score_facilities) AS avg_facilities
+        WHERE avg_facilities IS NOT NULL
+        RETURN h {
+            .*,
+            hotel_id: h.hotel_id,
+            name: h.name,
+            star_rating: h.star_rating,
+            average_reviews_score: h.average_reviews_score,
+            avg_score_facilities: avg_facilities,
+            city: c.name
+        } AS hotel
+        ORDER BY avg_facilities ASC
+        LIMIT $limit
+    """,
 
 }
