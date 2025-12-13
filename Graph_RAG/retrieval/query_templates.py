@@ -569,5 +569,125 @@ QUERY_TEMPLATES = {
         ORDER BY avg_facilities ASC
         LIMIT $limit
     """,
+    # Search hotels with minimum average staff score
+    "hotel_search_min_staff": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+        AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, co, avg(r.score_staff) AS avg_staff
+        WHERE avg_staff >= $rating
+        RETURN h {
+            .*,
+            hotel_id: h.hotel_id,
+            name: h.name,
+            star_rating: h.star_rating,
+            average_reviews_score: h.average_reviews_score,
+            avg_score_staff: avg_staff,
+            city: c.name
+        } AS hotel
+        ORDER BY avg_staff DESC
+        LIMIT $limit
+    """,
+    # Search hotels with maximum average staff score
+    "hotel_search_max_staff": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+        AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, co, avg(r.score_staff) AS avg_staff
+        WHERE avg_staff <= $max
+        RETURN h {
+            .*,
+            hotel_id: h.hotel_id,
+            name: h.name,
+            star_rating: h.star_rating,
+            average_reviews_score: h.average_reviews_score,
+            avg_score_staff: avg_staff,
+            city: c.name
+        } AS hotel
+        ORDER BY avg_staff DESC
+        LIMIT $limit
+    """,
+    # Search hotels with staff avg in a range
+    "hotel_search_staff_range": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+        AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, co, avg(r.score_staff) AS avg_staff
+        WHERE avg_staff >= $min AND avg_staff <= $max
+        RETURN h {
+            .*,
+            hotel_id: h.hotel_id,
+            name: h.name,
+            star_rating: h.star_rating,
+            average_reviews_score: h.average_reviews_score,
+            avg_score_staff: avg_staff,
+            city: c.name
+        } AS hotel
+        ORDER BY avg_staff DESC
+        LIMIT $limit
+    """,
+    # Search hotels with exact average staff value
+    "hotel_search_exact_staff": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+        AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, co, avg(r.score_staff) AS avg_staff
+        WHERE floor(avg_staff * 10) / 10 = $value
+        RETURN h {
+            .*,
+            hotel_id: h.hotel_id,
+            name: h.name,
+            star_rating: h.star_rating,
+            average_reviews_score: h.average_reviews_score,
+            avg_score_staff: avg_staff,
+            city: c.name
+        } AS hotel
+        ORDER BY avg_staff DESC
+        LIMIT $limit
+    """,
+    # Hotels with highest staff ratings
+    "top_hotel_staff": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+        AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, avg(r.score_staff) AS avg_staff
+        WHERE avg_staff IS NOT NULL
+        RETURN h {
+            .*,
+            hotel_id: h.hotel_id,
+            name: h.name,
+            star_rating: h.star_rating,
+            average_reviews_score: h.average_reviews_score,
+            avg_score_staff: avg_staff,
+            city: c.name
+        } AS hotel
+        ORDER BY avg_staff DESC
+        LIMIT $limit
+    """,
+    # Hotels with lowest staff ratings
+    "worst_hotel_staff": """
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
+        WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
+        AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
+        WITH h, c, avg(r.score_staff) AS avg_staff
+        WHERE avg_staff IS NOT NULL
+        RETURN h {
+            .*,
+            hotel_id: h.hotel_id,
+            name: h.name,
+            star_rating: h.star_rating,
+            average_reviews_score: h.average_reviews_score,
+            avg_score_staff: avg_staff,
+            city: c.name
+        } AS hotel
+        ORDER BY avg_staff ASC
+        LIMIT $limit
+    """,
 
 }
