@@ -16,8 +16,12 @@ class RetrievalPipeline:
         self.model_name = model_name
         self.embed = EmbeddingRetriever(connector, model_name=model_name)
         
-    def retrieve(self, intent: str, entities: Dict[str, Any], user_query: str, user_embeddings: bool = True, limit: int = 10) -> Dict[str, Any]:
-        baseline_results = self.baseline.retrieve(intent, entities, limit=limit)
+    def retrieve(self, intent: str, entities: Dict[str, Any], user_query: str, user_embeddings: bool = True, limit: int = 10, user_baseline: bool = True) -> Dict[str, Any]:
+        if user_baseline:
+            baseline_results, executed_cypher = self.baseline.retrieve(intent, entities, limit=limit)
+        else:
+            baseline_results = []
+            executed_cypher = ""
 
         embedding_results = []
         if user_embeddings:
@@ -34,7 +38,8 @@ class RetrievalPipeline:
             "baseline": baseline_results,
             "embeddings": embedding_results,
             "combined": combined,
-            "context_text": context_text
+            "context_text": context_text,
+            "cypher_query": executed_cypher
         }
 
     def _merge_results(self, baseline: List[Dict], embedding: List[Dict]) -> Dict[str, List[Dict]]:
@@ -115,6 +120,8 @@ class RetrievalPipeline:
         query: str,
         limit: int = 10,
         user_embeddings: bool = True,
+        use_llm: bool = True,
+        user_baseline: bool = True
     ) -> Dict[str, Any]:
         """
         Production-safe retrieval wrapper for the final chatbot.
@@ -128,7 +135,7 @@ class RetrievalPipeline:
 
         # 1) Extract entities
         extractor = EntityExtractor()
-        entities = extractor.extract(query)
+        entities = extractor.extract(query, use_llm=use_llm)
 
         # 2) Classify intent
         try:
@@ -146,7 +153,8 @@ class RetrievalPipeline:
                 entities=entities,
                 user_query=query,
                 user_embeddings=user_embeddings,
-                limit=limit
+                limit=limit,
+                user_baseline=user_baseline
             )
         except Exception as e:
             # Critical failure → return safe empty structure
@@ -156,9 +164,10 @@ class RetrievalPipeline:
                 "baseline": [],
                 "embeddings": [],
                 "combined": {"hotels": [], "reviews": []},
-                "context_text": f"[Retrieval Error: {str(e)}]"
+                "context_text": f"[Retrieval Error: {str(e)}]",
+                "cypher_query": f"// Error generating query: {str(e)}"
             }
-
+        
         # 4) Normalize structure and return clean results
         return {
             "intent": intent,
@@ -166,5 +175,6 @@ class RetrievalPipeline:
             "baseline": results.get("baseline", []),
             "embeddings": results.get("embeddings", []),
             "combined": results.get("combined", {}),
-            "context_text": results.get("context_text", "")
+            "context_text": results.get("context_text", ""),
+            "cypher_query": results.get("cypher_query", "// No Cypher executed")
         }

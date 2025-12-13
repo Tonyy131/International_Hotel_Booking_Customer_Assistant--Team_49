@@ -17,7 +17,7 @@ we use both pycountry and geonamescache to classify GPEs into cities and countri
 """
 class SpacyExtractor:
     def __init__(self):
-        self.nlp = spacy.load("en_core_web_md")
+        self.nlp = spacy.load("en_core_web_sm")
 
     def extract_gpe_entities(self, text: str) -> List[str]:
         """

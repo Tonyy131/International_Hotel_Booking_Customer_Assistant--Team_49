@@ -21,8 +21,7 @@ from typing import Dict, Any
 from huggingface_hub import InferenceClient
 
 HF_API_KEY = os.getenv("HF_API_KEY")
-if not HF_API_KEY:
-    raise RuntimeError("HF_API_KEY environment variable not set.")
+# Note: API key is checked when HFClient is instantiated, not at module import
 
 def approx_token_count(text: str) -> int:
     """Approximate token count by splitting on whitespace."""
@@ -33,6 +32,8 @@ class HFClient:
     Wrapper around HuggingFace InferenceClient to standardize model generation calls.
     """
     def __init__(self, model_name: str):
+        if not HF_API_KEY:
+            raise RuntimeError("HF_API_KEY environment variable not set. Cannot create HFClient instance.")
         self.model_name = model_name
         self.client = InferenceClient(model=model_name, token=HF_API_KEY)
 

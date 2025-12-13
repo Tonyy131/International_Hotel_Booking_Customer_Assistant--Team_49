@@ -251,7 +251,7 @@ QUERY_TEMPLATES = {
     # hotels with highest cleanliness ratings
 
     "top_hotel_cleanliness": """
-        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
         OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
         WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)

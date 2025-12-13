@@ -38,7 +38,7 @@ class BaselineRetriever:
                 else:
                     # fallback: return the raw record (for queries like reviews or visa)
                     cleaned.append(rec)
-            return cleaned
+            return cleaned, QUERY_TEMPLATES[cypher_key]
 
         print("BaselineRetriever: intent =", intent, "entities =", e)
         # --- hotel_search intent ---
@@ -239,6 +239,10 @@ class BaselineRetriever:
             if traveller_type:
                 # keep same params shape (template returns hotel + freq, _exec_and_extract will pick hotel)
                 return _exec_and_extract("recommend_hotels_by_traveller_type", {"traveller_type": traveller_type, "limit": limit})
+            if e.get("cities") or e.get("countries"):
+                return _exec_and_extract("hotel_search_by_city_or_country",
+                                        {"cities": e.get("cities", []), "countries": e.get("countries", []), "limit": limit})
+
             return _exec_and_extract("top_hotels", {"limit": limit})
 
         # --- visa_query ---

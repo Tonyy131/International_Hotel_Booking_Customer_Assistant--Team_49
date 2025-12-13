@@ -19,9 +19,10 @@ DEFAULT_PERSONA = (
 )
 
 DEFAULT_TASK = (
-    "Your task is to answer the user's hotel-related query using ONLY the given CONTEXT. "
-    "Summaries should be short, factual, and helpful. "
-    "If multiple hotels are relevant, list them in a bullet list with a short justification."
+    "Your task is to answer the user's hotel-related query using ONLY the given CONTEXT. \n"
+    "Summaries should be short, factual, and helpful. \n"
+    "If multiple hotels are relevant, list them in a bullet list with a short justification.\n"
+    "You should NEVER user external resources.\n"
 )
 
 def build_prompt(

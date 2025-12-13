@@ -425,6 +425,7 @@ class EmbeddingRetriever:
 
     # MAIN ENTRY POINT
     def sem_search_hotels(self, query: str, entities, top_k: int = 10, rating_filter: dict = None):
+    
         embedding = self.encoder.encode(query)
 
         cities = entities.get("cities", [])
