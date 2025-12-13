@@ -35,8 +35,6 @@ class RetrievalPipeline:
 
         # Build a textual context summary (simple)
         context_text = self._build_context_text(combined)
-        print(f"Context Text: \n{context_text}")
-        print("merged results", combined)
 
         return {
             "baseline": baseline_results,
@@ -75,7 +73,6 @@ class RetrievalPipeline:
                 hotels.append({**r, "source": source_name})
 
         process_list(baseline, "baseline")
-        print(baseline, "toto")
         process_list(embedding, "embedding")
 
         return {"hotels": hotels, "reviews": [], "visa_info": visa_info}

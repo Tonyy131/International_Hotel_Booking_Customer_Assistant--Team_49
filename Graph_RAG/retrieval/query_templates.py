@@ -400,4 +400,27 @@ QUERY_TEMPLATES = {
     """,
 
 
+    # Find hotels in countries that do NOT require a visa from the origin
+    "hotel_search_visa_free": """
+        MATCH (origin:Country)
+        WHERE toLower(origin.name) = toLower($origin)
+        
+        MATCH (dest:Country)
+        WHERE dest <> origin
+        AND NOT (origin)-[:NEEDS_VISA]->(dest)
+        
+        MATCH (h:Hotel)-[:LOCATED_IN]->(:City)-[:LOCATED_IN]->(dest)
+        
+        RETURN h { 
+            .*, 
+            hotel_id: h.hotel_id, 
+            name: h.name, 
+            average_reviews_score: h.average_reviews_score,
+            country: dest.name,
+            visa_status: "Visa Free" 
+        } AS hotel
+        ORDER BY h.average_reviews_score DESC
+        LIMIT $limit
+    """,
+
 }

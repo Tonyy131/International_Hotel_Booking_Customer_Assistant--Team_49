@@ -92,38 +92,58 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # --- 2. Visualization Helper ---
-def visualize_subgraph(hotels: List[Dict]):
-    """Creates a Plotly network graph from retrieved hotel nodes."""
-    if not hotels:
+def visualize_subgraph(combined_results: Dict):
+    """
+    Creates a Plotly network graph.
+    - Draws edges (lines)
+    - Draws edge labels (text on midpoints)
+    - Draws nodes (markers)
+    """
+    hotels = combined_results.get("hotels", [])
+    visa_info = combined_results.get("visa_info", [])
+    
+    if not hotels and not visa_info:
         return None
 
     G = nx.Graph()
     
+    # --- 1. Build Graph Structure ---
+    # Add Hotel Nodes
     for h in hotels:
-        # Hotel Node
         h_name = h.get("name") or "Unknown Hotel"
         h_id = h.get("hotel_id") or h_name
-        G.add_node(h_id, label=h_name, color='#FF6B6B', size=20, type='Hotel') # Red for Hotels
+        G.add_node(h_id, label=h_name, color='#FF6B6B', size=20, type='Hotel') 
         
-        # City Node (Connect Hotel -> City)
         city = h.get("city")
         if city:
             city_id = f"City_{city}"
-            G.add_node(city_id, label=city, color='#4ECDC4', size=15, type='City') # Teal for Cities
+            G.add_node(city_id, label=city, color='#4ECDC4', size=15, type='City') 
             G.add_edge(h_id, city_id, label="LOCATED_IN")
             
-        # Rating Node (Visual cue for high rating)
         score = h.get("avg_score_cleanliness") or h.get("average_reviews_score") or h.get("star_rating")
         if score and isinstance(score, (int, float)) and score > 8.0:
             rating_label = f"⭐ {score}"
             r_id = f"Rate_{h_id}"
-            G.add_node(r_id, label=rating_label, color='#FFE66D', size=10, type='Rating') # Yellow
-            G.add_edge(h_id, r_id)
+            G.add_node(r_id, label=rating_label, color='#FFE66D', size=10, type='Rating') 
+            G.add_edge(h_id, r_id, label="HAS_RATING")
 
-    # Generate Layout
+    # Add Visa Nodes
+    for v in visa_info:
+        origin = v.get("origin_country")
+        dest = v.get("destination_country")
+        req = v.get("visa_type", "Unknown")
+        
+        if origin and dest:
+            G.add_node(origin, label=origin, color='#9D50BB', size=25, type='Country')
+            G.add_node(dest, label=dest, color='#9D50BB', size=25, type='Country')
+            G.add_edge(origin, dest, label=req)
+
+    # --- 2. Calculate Layout ---
     pos = nx.spring_layout(G, seed=42)
     
-    # Edges trace
+    # --- 3. Create Traces ---
+    
+    # TRACE A: Edge Lines (The visible connections)
     edge_x, edge_y = [], []
     for edge in G.edges():
         x0, y0 = pos[edge[0]]
@@ -133,11 +153,35 @@ def visualize_subgraph(hotels: List[Dict]):
 
     edge_trace = go.Scatter(
         x=edge_x, y=edge_y,
-        line=dict(width=0.5, color='#888'),
+        line=dict(width=1, color='#888'),
         hoverinfo='none',
-        mode='lines')
+        mode='lines'
+    )
 
-    # Nodes trace
+    # TRACE B: Edge Labels (Invisible points at the center of lines to hold text)
+    elabel_x, elabel_y, elabel_text = [], [], []
+    for edge in G.edges(data=True):
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        
+        # Calculate midpoint
+        elabel_x.append((x0 + x1) / 2)
+        elabel_y.append((y0 + y1) / 2)
+        
+        # Get the label text (e.g., "Visa Required" or "LOCATED_IN")
+        elabel_text.append(edge[2].get('label', ''))
+
+    edge_label_trace = go.Scatter(
+        x=elabel_x, y=elabel_y,
+        mode='text',
+        text=elabel_text,
+        textposition='middle center',
+        hoverinfo='none',
+        # Style the text background so it's readable over lines
+        textfont=dict(size=10, color="#15ff00"),
+    )
+
+    # TRACE C: Nodes (The dots)
     node_x, node_y, node_text, node_color, node_size = [], [], [], [], []
     for node in G.nodes():
         x, y = pos[node]
@@ -155,7 +199,8 @@ def visualize_subgraph(hotels: List[Dict]):
         hoverinfo='text',
         marker=dict(color=node_color, size=node_size, line_width=2))
 
-    fig = go.Figure(data=[edge_trace, node_trace],
+    # --- 4. Render Figure ---
+    fig = go.Figure(data=[edge_trace, edge_label_trace, node_trace],
              layout=go.Layout(
                 showlegend=False,
                 hovermode='closest',
@@ -187,12 +232,18 @@ for i, msg in enumerate(st.session_state.messages):
                     st.text(msg["data"].get("context_text", "No context retrieved."))
                 
                 with tab2:
-                    hotels = msg["data"].get("combined", {}).get("hotels", [])
-                    if hotels:
-                        fig = visualize_subgraph(hotels)
+                    # Get the whole combined dictionary
+                    combined_data = msg["data"].get("combined", {})
+                    
+                    # Check if we have ANY data (hotels or visa)
+                    has_data = combined_data.get("hotels") or combined_data.get("visa_info")
+                    
+                    if has_data:
+                        # Pass the whole dictionary
+                        fig = visualize_subgraph(combined_data)
                         st.plotly_chart(fig, width='stretch', key=f"graph_{i}")
                     else:
-                        st.info("No hotel nodes found to visualize.")
+                        st.info("No graph nodes (hotels or visa info) found to visualize.")
                 
                 with tab3:
                     intent = msg["data"].get("intent", "Unknown")

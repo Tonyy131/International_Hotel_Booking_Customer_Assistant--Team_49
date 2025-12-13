@@ -257,6 +257,15 @@ class BaselineRetriever:
                 }
                 return _exec_and_extract("visa_requirements", params)
             return [],""
+        
+        if intent == "hotel_visa":
+            origins = e.get("origin_country") or []
+            if origins:
+                params = {"origin": origins[0], "limit": limit}
+                return _exec_and_extract("hotel_search_visa_free", params)
+            
+            # If origin is missing, fallback to generic top hotels
+            return _exec_and_extract("top_hotels", {"limit": limit})
 
         # Generic fallback
         return _exec_and_extract("top_hotels", {"limit": limit})

@@ -4,8 +4,8 @@ from preprocessing.llm_intent_classifier import classify_intent_llm_hf
 
 def classify_user_intent(text: str,
                          use_llm_fallback: bool = True,
-                         min_score: float = 1.0,
-                         margin_ratio: float = 1.25,
+                         min_score: float = 0.1,
+                         margin_ratio: float = 100,
                          llm_timeout: float = 1.5) -> Dict[str, Any]:
     """
     Orchestrates rule-based classification and optional LLM fallback.

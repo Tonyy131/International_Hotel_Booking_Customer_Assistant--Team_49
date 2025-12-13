@@ -441,8 +441,6 @@ class EmbeddingRetriever:
             "origin": origin_country,
             "destination": destination_country
         }
-        print("origin", origin_country)
-        print("dest", destination_country)
 
         return self.db.run_query(cypher, params)
     
@@ -527,6 +525,35 @@ class EmbeddingRetriever:
         """
 
         return self.db.run_query(cypher, params)
+    
+
+    def get_visa_free_countries(self, origin_country: str) -> List[str]:
+        """
+        Finds 'Visa Free' countries by looking for the ABSENCE of a 
+        restrictive [:NEEDS_VISA] relationship.
+        """
+        cypher = """
+        MATCH (origin:Country)
+        WHERE toLower(origin.name) = toLower($origin)
+        
+        MATCH (dest:Country)
+        WHERE dest <> origin 
+        
+        # KEY LOGIC: Exclude any country that HAS a visa relationship
+        AND NOT (origin)-[:NEEDS_VISA]->(dest)
+        
+        RETURN dest.name AS country
+        """
+        
+        params = {"origin": origin_country}
+        results = self.db.run_query(cypher, params)
+        
+        found_countries = [r["country"].lower() for r in results]
+        
+        if not found_countries:
+            print(f"No visa-free countries found for {origin_country}. (Check if Country nodes exist?)")
+        
+        return found_countries
 
     # MAIN ENTRY POINT
     def sem_search_hotels(self, query: str, entities, top_k: int = 10, rating_filter: dict = None, intent: str = "hotel_search"):
@@ -541,6 +568,23 @@ class EmbeddingRetriever:
 
         cities = entities.get("cities", [])
         countries = entities.get("countries", [])
+
+        if intent == "hotel_visa":
+            origin_country = entities.get("origin_country", [None])[0]
+            
+            if origin_country:
+                print(f"DEBUG: Processing 'hotel_visa' for origin: {origin_country}")
+                
+                allowed_countries = self.get_visa_free_countries(origin_country)
+                
+                if allowed_countries:
+                    print(f"DEBUG: Found {len(allowed_countries)} visa-free destinations.")
+                    countries = allowed_countries
+                else:
+                    print("DEBUG: No visa-free countries found.")
+                    return [] 
+            else:
+                print("DEBUG: Intent is 'hotel_visa' but no 'origin_country' extracted.")
 
         # The single generic method handles empty lists (Global), single items, or multiple items automatically.
         return self._search_hotels_generic(

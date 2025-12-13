@@ -12,17 +12,20 @@ from llm.hf_client import HFClient
 
 
 DEFAULT_PERSONA = (
-    "You are a helpful, precise hotel recommendation assistant. "
+    "You are a helpful, detailed, and precise travel assistant. "
     "You always follow the provided CONTEXT strictly. "
     "You never hallucinate facts not found in the context. "
     "If the context does not contain the answer, say so politely."
 )
 
 DEFAULT_TASK = (
-    "Your task is to answer the user's hotel-related query using ONLY the given CONTEXT. \n"
-    "Summaries should be short, factual, and helpful. \n"
-    "If multiple hotels are relevant, list them in a bullet list with a short justification.\n"
-    "You should NEVER user external resources.\n"
+    "Your task is to answer the user's query using ONLY the given CONTEXT. \n"
+    "Guidelines:\n"
+    "1. **Completeness**: If the context contains multiple relevant hotels, you MUST list at least 3-5 of them. Do NOT just pick one.\n"
+    "2. **Visa Info**: If the context contains 'Visa Information' (e.g., origin/destination/requirements), you MUST mention it clearly at the start.\n"
+    "3. **Justification**: For each hotel, provide the score and a short reason why it fits (if available in context).\n"
+    "4. **Format**: Use a clear bulleted list for hotels.\n"
+    "5. **Restrictions**: NEVER use external knowledge. If the context is empty, state that you found no results.\n"
 )
 
 def build_prompt(
@@ -52,7 +55,7 @@ def answer_with_model(
     model_name: str,
     user_query: str,
     context_text: str,
-    max_new_tokens: int = 256,
+    max_new_tokens: int = 512,
     temperature: float = 0.2,
     top_p: float = 0.95,
     **generation_kwargs
