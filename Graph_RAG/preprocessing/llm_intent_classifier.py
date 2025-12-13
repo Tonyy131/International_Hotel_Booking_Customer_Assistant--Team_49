@@ -18,7 +18,7 @@ Given a user query, classify it into EXACTLY ONE of these intent labels:
 {", ".join(INTENT_LABELS)}
 
 INTENT DEFINITIONS:
-- recommendation: User asks for suggestions, best options, or recommendations.
+- recommendation: User asks for suggestions, best options, or recommendations.(ONLY CHOOSE THIS IF THE USER ASKS ABOUT RECOMMENDATIONS FOR TRAVELER TYPES(E.G., "best hotels for families", "top-rated hotels for business travelers"))
 - booking: User wants to book, reserve, or arrange a hotel stay.
 - visa_query: User asks about traveling to another country, requirements before travel, visa rules, travel documents, passport validity, entry restrictions.
 - review_query: User asks for reviews, ratings, feedback, or opinions about a hotel.

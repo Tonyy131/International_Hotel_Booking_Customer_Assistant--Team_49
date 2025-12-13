@@ -1,7 +1,7 @@
 from typing import List, Dict, Any
 from neo4j_connector import Neo4jConnector
 from preprocessing.embedding_encoder import EmbeddingEncoder
-from preprocessing.entity_extractor import extract_entities
+# from preprocessing.entity_extractor import extract_entities
 
 
 class EmbeddingRetriever:

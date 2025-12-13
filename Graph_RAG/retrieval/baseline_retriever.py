@@ -242,6 +242,7 @@ class BaselineRetriever:
             if e.get("cities") or e.get("countries"):
                 return _exec_and_extract("hotel_search_by_city_or_country",
                                         {"cities": e.get("cities", []), "countries": e.get("countries", []), "limit": limit})
+            
 
             return _exec_and_extract("top_hotels", {"limit": limit})
 
