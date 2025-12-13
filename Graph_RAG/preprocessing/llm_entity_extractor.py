@@ -32,7 +32,7 @@ SCHEMA:
         "rating": float
     },
     "rating_filter": {
-        "type": "none|stars|cleanliness|score",
+        "type": "none|stars|cleanliness|comfort|score",
         "operator": "gte|lte|between|eq|null",
         "value": number|null,
         "min": number|null,
@@ -60,8 +60,8 @@ STRICT RULES:
     - If user says "between A and B" or "A to B", produce operator "between" and set min/max.
     - If user only says a single numeric rating without context (e.g., "8"), assume it is a review score (10-scale).
     - Use "type": "stars" when user explicitly mentions "stars". Use "type": "score" for "8/10", "rating 8", "average rating".
+    - If the user does not mention a value for the rating filter, NEVER assume any value and ALWAYS use "value": 0.
    
-
 
 5. Hotels:
    - Only extract hotel names mentioned directly.
