@@ -256,6 +256,9 @@ class BaselineRetriever:
                     "to": dests[0]
                 }
                 return _exec_and_extract("visa_requirements", params)
+            if origins:
+                params = {"from": origins[0]}
+                return _exec_and_extract("visa_requirements_by_origin", params)
             return [],""
         
         if intent == "hotel_visa":

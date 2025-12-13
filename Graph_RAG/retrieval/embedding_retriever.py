@@ -560,10 +560,20 @@ class EmbeddingRetriever:
     
         embedding = self.encoder.encode(query)
 
-        if(intent == "visa_query") :
-            origin_country = entities.get("origin_country", [])[0]
-            destination_country = entities.get("destination_country", [])[0]
-            return self.search_visa(origin_country, destination_country, embedding, top_k)
+        if intent == "visa_query":
+            # Safely get the lists
+            origins = entities.get("origin_country", [])
+            dests = entities.get("destination_country", [])
+
+            # Check if lists are not empty before accessing [0]
+            origin_country = origins[0] if origins else None
+            destination_country = dests[0] if dests else None
+            
+            # The search_visa method likely needs both. If one is missing, return empty.
+            if origin_country and destination_country:
+                return self.search_visa(origin_country, destination_country, embedding, top_k)
+            else:
+                return []
         
 
         cities = entities.get("cities", [])
