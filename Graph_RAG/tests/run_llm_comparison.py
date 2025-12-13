@@ -26,11 +26,11 @@ from llm.llm_answerer import answer_with_model
 
 # MODEL LIST
 MODEL_CANDIDATES = [
-    "meta-llama/Llama-3.1-8B-Instruct",
     "Qwen/Qwen2.5-1.5B-Instruct",
-    "deepseek-ai/DeepSeek-R1",
-    "mistralai/Mistral-7B-Instruct-v0.2"
-
+    "meta-llama/Llama-3.1-8B-Instruct", 
+    "mistralai/Mistral-7B-Instruct-v0.2",
+    "deepseek-ai/DeepSeek-V3.2",
+    "openai/gpt-oss-20b"
 ]
 
 
