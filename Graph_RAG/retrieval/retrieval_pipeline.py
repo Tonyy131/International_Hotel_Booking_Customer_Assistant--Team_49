@@ -18,9 +18,7 @@ class RetrievalPipeline:
         
     def retrieve(self, intent: str, entities: Dict[str, Any], user_query: str, user_embeddings: bool = True, limit: int = 10, user_baseline: bool = True) -> Dict[str, Any]:
         if user_baseline:
-            print(entities,"mizpppy")
             baseline_results, executed_cypher = self.baseline.retrieve(intent, entities, limit=limit)
-            print(baseline_results, "mizpppp")
         else:
             baseline_results = []
             executed_cypher = ""
