@@ -28,7 +28,9 @@ with st.sidebar:
         options=[
             "Qwen/Qwen2.5-1.5B-Instruct",
             "meta-llama/Llama-3.1-8B-Instruct", 
-            "mistralai/Mistral-7B-Instruct-v0.2"
+            "mistralai/Mistral-7B-Instruct-v0.2",
+            "deepseek-ai/DeepSeek-V3.2",
+            "openai/gpt-oss-20b"
         ],
         index=0
     )
