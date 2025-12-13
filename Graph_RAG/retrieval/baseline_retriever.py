@@ -251,8 +251,12 @@ class BaselineRetriever:
             origins = e.get("origin_country") or []
             dests = e.get("destination_country") or []
             if origins and dests:
-                return self.db.run_query(QUERY_TEMPLATES["visa_requirements"], {"from": origins[0], "to": dests[0]})
-            return []
+                params = {
+                    "from": origins[0], 
+                    "to": dests[0]
+                }
+                return _exec_and_extract("visa_requirements", params)
+            return [],""
 
         # Generic fallback
         return _exec_and_extract("top_hotels", {"limit": limit})

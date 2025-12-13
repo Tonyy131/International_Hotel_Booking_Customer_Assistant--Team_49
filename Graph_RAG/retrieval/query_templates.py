@@ -84,7 +84,9 @@ QUERY_TEMPLATES = {
     # Visa requirement between two countries
     "visa_requirements": """
         MATCH (from:Country {name:$from})-[v:NEEDS_VISA]->(to:Country {name:$to})
-        RETURN v.visa_type AS visa_type
+        RETURN from.name AS origin_country, 
+               to.name AS destination_country, 
+               v.visa_type AS visa_type
     """,
 
     # Hotels that match a textual search (exact name substring)

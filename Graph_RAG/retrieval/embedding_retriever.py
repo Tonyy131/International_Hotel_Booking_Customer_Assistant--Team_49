@@ -422,34 +422,131 @@ class EmbeddingRetriever:
         cypher = cypher % self.property_name
 
         return self.db.run_query(cypher, params)
+    
+    def search_visa(self, origin_country:str , destination_country:str, embedding: List[float], top_k:int=10):
+        if not origin_country or not destination_country:
+            return []
+
+        # We use toLower() for case-insensitive matching to be robust against user input variations
+        cypher = """
+        MATCH (from:Country)-[v:NEEDS_VISA]->(to:Country)
+        WHERE toLower(from.name) = toLower($origin) 
+          AND toLower(to.name) = toLower($destination)
+        RETURN from.name AS origin_country, 
+               to.name AS destination_country, 
+               v.visa_type AS visa_type
+        """
+
+        params = {
+            "origin": origin_country,
+            "destination": destination_country
+        }
+        print("origin", origin_country)
+        print("dest", destination_country)
+
+        return self.db.run_query(cypher, params)
+    
+    def _build_rating_clause(self, rating_filter: dict, params: dict) -> str:
+        if not rating_filter or rating_filter.get("type") == "none":
+            return ""
+
+        r_type = rating_filter.get("type")
+        op = rating_filter.get("operator")
+        val = rating_filter.get("value")
+        min_val = rating_filter.get("min")
+        max_val = rating_filter.get("max")
+        
+        # Map filter type to DB property
+        field_map = {
+            "stars": "h.star_rating",
+            "cleanliness": "h.score_cleanliness",
+            "comfort": "h.score_comfort",
+            "reviews": "h.average_reviews_score" # Default fallback
+        }
+        db_field = field_map.get(r_type, "h.average_reviews_score")
+
+        clause = ""
+        if op == "gte" and val is not None:
+            clause = f"AND {db_field} >= $rating_min"
+            params["rating_min"] = val
+        elif op == "lte" and val is not None:
+            clause = f"AND {db_field} <= $rating_max"
+            params["rating_max"] = val
+        elif op == "between" and min_val is not None and max_val is not None:
+            clause = f"AND {db_field} >= $rating_min AND {db_field} <= $rating_max"
+            params["rating_min"] = min_val
+            params["rating_max"] = max_val
+            
+        return clause
+    
+    def _search_hotels_generic(self, embedding: List[float], cities: List[str] = None, countries: List[str] = None, top_k: int = 10, rating_filter: dict = None):
+        params = {
+            "index_name": self.index_name,
+            "embedding": embedding,
+            "top_k": top_k
+        }
+
+        # 1. Build Location Match Clause dynamically
+        location_match = "MATCH (c:City)" # Default global base
+        
+        if cities:
+            # Works for 1 or multiple cities
+            location_match = """
+            MATCH (c:City)
+            WHERE toLower(c.name) IN $cities
+            """
+            params["cities"] = [c.lower() for c in cities]
+        elif countries:
+            # Works for 1 or multiple countries
+            location_match = """
+            MATCH (co:Country)
+            WHERE toLower(co.name) IN $countries
+            MATCH (c:City)-[:LOCATED_IN]->(co)
+            """
+            params["countries"] = [c.lower() for c in countries]
+
+        # 2. Build Rating Clause
+        rating_clause = self._build_rating_clause(rating_filter, params)
+
+        # 3. Assemble Full Cypher
+        cypher = f"""
+        {location_match}
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c)
+        WHERE h.{self.property_name} IS NOT NULL
+        {rating_clause}
+
+        WITH collect(h) AS hotels
+
+        CALL db.index.vector.queryNodes('{self.index_name}', $top_k, $embedding)
+        YIELD node, score
+        WHERE node IN hotels
+
+        RETURN node.name AS name, node.hotel_id AS hotel_id, score
+        ORDER BY score DESC
+        LIMIT $top_k
+        """
+
+        return self.db.run_query(cypher, params)
 
     # MAIN ENTRY POINT
-    def sem_search_hotels(self, query: str, entities, top_k: int = 10, rating_filter: dict = None):
+    def sem_search_hotels(self, query: str, entities, top_k: int = 10, rating_filter: dict = None, intent: str = "hotel_search"):
     
         embedding = self.encoder.encode(query)
+
+        if(intent == "visa_query") :
+            origin_country = entities.get("origin_country", [])[0]
+            destination_country = entities.get("destination_country", [])[0]
+            return self.search_visa(origin_country, destination_country, embedding, top_k)
+        
 
         cities = entities.get("cities", [])
         countries = entities.get("countries", [])
 
-        # MULTI-CITY
-        if len(cities) > 1:
-            return self.sem_search_hotels_in_cities(cities, embedding, top_k, rating_filter)
-
-        # SINGLE CITY
-        if len(cities) == 1:
-            results = self.sem_search_hotels_in_city(cities[0], embedding, top_k, rating_filter)
-            if results:
-                return results
-
-        # MULTI-COUNTRY
-        if len(countries) > 1:
-            return self.sem_search_hotels_in_countries(countries, embedding, top_k, rating_filter)
-
-        # SINGLE COUNTRY
-        if len(countries) == 1:
-            results = self.sem_search_hotels_in_country(countries[0], embedding, top_k, rating_filter)
-            if results:
-                return results
-
-        # GLOBAL FALLBACK
-        return self.sem_search_hotels_global(embedding, top_k,rating_filter)
+        # The single generic method handles empty lists (Global), single items, or multiple items automatically.
+        return self._search_hotels_generic(
+            embedding=embedding, 
+            cities=cities, 
+            countries=countries, 
+            top_k=top_k, 
+            rating_filter=rating_filter
+        )

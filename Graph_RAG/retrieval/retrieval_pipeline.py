@@ -18,7 +18,9 @@ class RetrievalPipeline:
         
     def retrieve(self, intent: str, entities: Dict[str, Any], user_query: str, user_embeddings: bool = True, limit: int = 10, user_baseline: bool = True) -> Dict[str, Any]:
         if user_baseline:
+            print(entities,"mizpppy")
             baseline_results, executed_cypher = self.baseline.retrieve(intent, entities, limit=limit)
+            print(baseline_results, "mizpppp")
         else:
             baseline_results = []
             executed_cypher = ""
@@ -27,12 +29,14 @@ class RetrievalPipeline:
         if user_embeddings:
             # For hotel-oriented intents we search hotels + reviews
             rating_filter = entities.get("rating_filter") if entities else None
-            embedding_results = self.embed.sem_search_hotels(user_query, entities, top_k=limit, rating_filter=rating_filter)
+            embedding_results = self.embed.sem_search_hotels(user_query, entities, top_k=limit, rating_filter=rating_filter, intent=intent)
 
         combined = self._merge_results(baseline_results, embedding_results)
 
         # Build a textual context summary (simple)
         context_text = self._build_context_text(combined)
+        print(f"Context Text: \n{context_text}")
+        print("merged results", combined)
 
         return {
             "baseline": baseline_results,
@@ -44,72 +48,69 @@ class RetrievalPipeline:
 
     def _merge_results(self, baseline: List[Dict], embedding: List[Dict]) -> Dict[str, List[Dict]]:
         """
-        Merge by hotel_id/name de-duplication.
-        Returns a dict with keys 'hotels' and 'reviews' (reviews empty here unless you add review embed search).
+        Merges results while preserving 'origin_country' and 'destination_country' 
+        for visa queries, alongside standard hotel data.
         """
         hotels = []
+        visa_info = []
         seen_ids = set()
-        # baseline may return records with hotel_id or name
-        for r in baseline or []:
-            hid = r.get("hotel_id") or r.get("hotel", {}).get("hotel_id") if isinstance(r.get("hotel"), dict) else None
-            name = r.get("name") or (r.get("h") and r.get("h").get("name"))
-            key = hid or name
-            if not key:
-                continue
-            if key in seen_ids:
-                continue
-            seen_ids.add(key)
-            hotels.append({**r, "source": "baseline"})
 
-        for r in embedding or []:
-            hid = r.get("hotel_id") or r.get("id") or r.get("node") and r.get("node").get("hotel_id")
-            name = r.get("name")
-            key = hid or name
-            if not key:
-                continue
-            if key in seen_ids:
-                continue
-            seen_ids.add(key)
-            hotels.append({**r, "source": "embedding"})
+        def process_list(result_list, source_name):
+            for r in result_list or []:
+                
+                if "visa_type" in r:
+                    visa_info.append({**r, "source": source_name})
+                    continue 
 
-        return {"hotels": hotels, "reviews": []}
+                hid = r.get("hotel_id") or r.get("hotel", {}).get("hotel_id") if isinstance(r.get("hotel"), dict) else None
+                name = r.get("name") or (r.get("h") and r.get("h").get("name"))
+                
+                key = hid or name
+                if not key:
+                    continue
+                
+                if key in seen_ids:
+                    continue
+                seen_ids.add(key)
+                hotels.append({**r, "source": source_name})
+
+        process_list(baseline, "baseline")
+        print(baseline, "toto")
+        process_list(embedding, "embedding")
+
+        return {"hotels": hotels, "reviews": [], "visa_info": visa_info}
+    
 
     def _build_context_text(self, combined: Dict[str, Any]) -> str:
-        """
-        Create a human-readable context string summarizing retrieved KG info.
-        The LLM prompt will use this to ground responses.
-        """
         parts = []
+        
+        # --- Handle Visa Context ---
+        visa_list = combined.get("visa_info", [])
+        if visa_list:
+            parts.append("--- Visa Information ---")
+            for v in visa_list:
+                # We extract the specific country keys here
+                origin = v.get("origin_country", "Unknown Origin")
+                dest = v.get("destination_country", "Unknown Destination")
+                req = v.get("visa_type", "Unknown Requirement")
+                
+                parts.append(f"• Travel from {origin} to {dest}: {req}")
+            parts.append("")
+
+        # --- Handle Hotel Context (Existing logic) ---
         hotels = combined.get("hotels", [])
-        if not hotels:
-            return "No relevant hotels or reviews found in the knowledge graph."
+        if hotels:
+            parts.append("--- Retrieved Hotels ---")
+            for h in hotels:
+                name = h.get("name")
+                avg_score = h.get("average_reviews_score")
+                line = f"- {name}"
+                if avg_score:
+                    line += f" (Score: {avg_score})"
+                parts.append(line)
 
-        parts.append("Retrieved hotels:")
-        for h in hotels:
-            name = h.get("name") or (h.get("h") and h.get("h").get("name"))
-            avg_overall = (
-                h.get("avg_score_cleanliness")
-                or h.get("average_reviews_score")
-                or h.get("avg_score")
-                or h.get("score")
-            )
-
-            # Collect traveller type scores
-            ttype_scores = [
-                f"{k.replace('avg_score_', '').replace('_',' ').title()}: {v:.2f}"
-                for k, v in h.items()
-                if k.startswith("avg_score_") and isinstance(v, (int, float))
-            ]
-            src = h.get("source", "unknown")
-            line = f"- {name}"
-            if avg_overall is not None:
-                line += f" (avg_score={avg_overall:.2f})"
-            if ttype_scores:
-                line += "\n    Traveller-type scores:"
-                for ts in ttype_scores:
-                    line += f"\n      • {ts}"
-            line += f"  [via: {src}]"
-            parts.append(line)
+        if not parts:
+            return "No relevant information found."
 
         return "\n".join(parts)
     
@@ -148,6 +149,7 @@ class RetrievalPipeline:
 
         # 3) Run the actual retrieval
         try:
+            print("entitiessss", entities)
             results = self.retrieve(
                 intent=intent,
                 entities=entities,
