@@ -3,6 +3,9 @@ import time
 import networkx as nx
 import plotly.graph_objects as go
 from typing import Dict, List
+import os
+import json
+from datetime import datetime
 
 # --- Backend Imports ---
 try:
@@ -14,17 +17,185 @@ except ImportError:
 # --- Page Config ---
 st.set_page_config(
     page_title="Graph-RAG Travel Assistant",
-    page_icon="🌍",
     layout="wide"
+)
+
+# --- Animated Background (CSS only, no emojis) ---
+st.markdown(
+        """
+        <style>
+        :root {
+            --bg1: #0f2027;
+            --bg2: #203a43;
+            --bg3: #2c5364;
+            --sb1: #0b1720;
+            --sb2: #122634;
+            --sb-border: rgba(255,255,255,0.08);
+            --text: #e8f1f5;
+            --muted: #a9bdc8;
+            --accent: #34b3ff;
+            --accent-weak: rgba(52,179,255,0.15);
+        }
+
+        /* Smooth animated gradient base */
+        .stApp {
+            background: linear-gradient(120deg, var(--bg1), var(--bg2), var(--bg3));
+            background-size: 400% 400%;
+            animation: gradientShift 28s ease-in-out infinite;
+        }
+
+        /* Base responsive typography */
+        html, body { font-size: 16px; }
+        @media (max-width: 1200px) { html, body { font-size: 15px; } }
+        @media (max-width: 992px)  { html, body { font-size: 14px; } }
+        @media (max-width: 768px)  { html, body { font-size: 13px; } }
+        @media (max-width: 576px)  { html, body { font-size: 12px; } }
+
+        /* Soft floating color blobs overlay */
+        .stApp::before, .stApp::after {
+            content: "";
+            position: fixed;
+            top: -20vh; left: -20vw; right: -20vw; bottom: -20vh;
+            pointer-events: none;
+            z-index: 0;
+            background:
+                radial-gradient(closest-side at 25% 35%, rgba(255, 0, 120, 0.08), transparent 60%),
+                radial-gradient(closest-side at 75% 65%, rgba(0, 200, 255, 0.07), transparent 60%),
+                radial-gradient(closest-side at 60% 25%, rgba(255, 200, 0, 0.05), transparent 60%);
+            filter: blur(64px);
+            transform: translate3d(0,0,0);
+        }
+
+        .stApp::before {
+            animation: floatBlob1 26s ease-in-out infinite alternate;
+        }
+        .stApp::after {
+            animation: floatBlob2 34s ease-in-out infinite alternate;
+            opacity: 0.85;
+        }
+
+        /* Ensure app content stays above the background layers */
+        .stApp > div {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Sidebar styling to match background palette */
+        [data-testid="stSidebar"] > div {
+            background: linear-gradient(160deg, var(--sb1) 0%, var(--sb2) 100%);
+            border-right: 1px solid var(--sb-border);
+            box-shadow: 8px 0 24px rgba(0,0,0,0.25);
+            color: var(--text);
+            height: 100vh;
+            overflow-y: auto;
+            overscroll-behavior-y: contain;
+            scrollbar-width: thin;
+        }
+        /* Responsive sidebar width adjustments */
+        [data-testid="stSidebar"] { width: 22rem; }
+        @media (max-width: 1200px) { [data-testid="stSidebar"] { width: 20rem; } }
+        @media (max-width: 992px)  { [data-testid="stSidebar"] { width: 18rem; } }
+        @media (max-width: 768px)  { [data-testid="stSidebar"] { width: 16rem; } }
+        @media (max-width: 576px)  { [data-testid="stSidebar"] { width: 14rem; } }
+
+        /* WebKit scrollbar styling for sidebar */
+        [data-testid="stSidebar"] > div::-webkit-scrollbar {
+            width: 10px;
+        }
+        [data-testid="stSidebar"] > div::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+        }
+        [data-testid="stSidebar"] > div::-webkit-scrollbar-thumb {
+            background: rgba(52,179,255,0.35);
+            border-radius: 8px;
+            border: 2px solid rgba(0,0,0,0.2);
+        }
+        }
+        [data-testid="stSidebar"] h1,
+        [data-testid="stSidebar"] h2,
+        [data-testid="stSidebar"] h3,
+        [data-testid="stSidebar"] h4,
+        [data-testid="stSidebar"] h5,
+        [data-testid="stSidebar"] h6,
+        [data-testid="stSidebar"] p,
+        [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] span { color: var(--text) !important; }
+        [data-testid="stSidebar"] .markdown-text-container p { color: var(--muted) !important; }
+
+        /* Inputs in sidebar */
+        [data-testid="stSidebar"] .stSelectbox > div > div,
+        [data-testid="stSidebar"] .stTextInput > div > div,
+        [data-testid="stSidebar"] .stMultiSelect > div > div,
+        [data-testid="stSidebar"] .stNumberInput > div > div,
+        [data-testid="stSidebar"] .stDateInput > div > div,
+        [data-testid="stSidebar"] .stTimeInput > div > div {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--sb-border);
+            color: var(--text);
+        }
+        [data-testid="stSidebar"] .stRadio > label,
+        [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label {
+            color: var(--text) !important;
+        }
+        [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label:hover {
+            background: var(--accent-weak);
+            border-radius: 6px;
+        }
+        [data-testid="stSidebar"] .stSelectbox [data-baseweb="select"] div {
+            color: var(--text);
+        }
+        [data-testid="stSidebar"] .stButton > button {
+            background: linear-gradient(180deg, rgba(52,179,255,0.18), rgba(52,179,255,0.10));
+            color: var(--text);
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            transition: all .15s ease-in-out;
+        }
+        [data-testid="stSidebar"] .stButton > button:hover {
+            box-shadow: 0 0 0 3px var(--accent-weak);
+            transform: translateY(-1px);
+        }
+
+        @keyframes gradientShift {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes floatBlob1 {
+            0%   { transform: translate(-2%, -1%) scale(1.00) rotate(0deg); }
+            50%  { transform: translate(3%, 2%) scale(1.05) rotate(10deg); }
+            100% { transform: translate(-1%, 1%) scale(1.00) rotate(0deg); }
+        }
+
+        @keyframes floatBlob2 {
+            0%   { transform: translate(1%, -2%) scale(1.00) rotate(0deg); }
+            50%  { transform: translate(-3%, 1%) scale(1.07) rotate(-8deg); }
+            100% { transform: translate(2%, -1%) scale(1.00) rotate(0deg); }
+        }
+
+        /* Responsive content containers */
+        .block-container { padding: 1.5rem 2rem 2.5rem; }
+        @media (max-width: 992px)  { .block-container { padding: 1.25rem 1.5rem 2rem; } }
+        @media (max-width: 768px)  { .block-container { padding: 1rem 1rem 1.5rem; } }
+        @media (max-width: 576px)  { .block-container { padding: 0.75rem 0.75rem 1rem; } }
+
+        /* Make Plotly charts responsive */
+        .js-plotly-plot, .plotly { width: 100% !important; }
+        .stPlotlyChart { width: 100% !important; }
+        @media (max-width: 576px) { .stPlotlyChart { min-height: 240px; } }
+        </style>
+        """,
+        unsafe_allow_html=True,
 )
 
 # --- Sidebar Configuration (Moved up for Initialization) ---
 with st.sidebar:
-    st.title("⚙️ Settings")
+    st.title("Settings")
     
     # Requirement: Compare at least 3 models
     model_name = st.selectbox(
-        "Select LLM Model",
+        "Model",
         options=[
             "Qwen/Qwen2.5-1.5B-Instruct",
             "meta-llama/Llama-3.1-8B-Instruct", 
@@ -38,7 +209,7 @@ with st.sidebar:
     # NEW: Embedding Model Selection
     # Maps user-friendly names to internal keys expected by RetrievalPipeline
     embedding_option = st.radio(
-        "Embedding Model",
+        "Embedding",
         options=["MiniLM (ll-MiniLM-L6-v2)", "BGE (bge-small-en-v1.5)"],
         index=0
     )
@@ -51,7 +222,7 @@ with st.sidebar:
 
     # Requirement: Retrieval Method Selection
     retrieval_method = st.radio(
-        "Retrieval Strategy",
+        "Retrieval",
         options=["Hybrid (Baseline + Embeddings)", "Baseline Only", "Embeddings Only"],
         index=0
     )
@@ -64,10 +235,200 @@ with st.sidebar:
     elif retrieval_method == "Embeddings Only":
         use_baseline = False
 
-    st.divider()
-    if st.button("🗑️ Clear Chat History"):
-        st.session_state.messages = []
-        st.rerun()
+    st.markdown("---")
+    # Local persistence disabled permanently
+    NO_LOCAL_SAVE = True
+    # --- Chat Session Management ---
+    # Persist chats to disk so users can reopen old chats across models
+    CHAT_DIR = os.path.join(os.path.dirname(__file__), "chat_history")
+    # Do not create chat directory when local saving is disabled
+
+    def list_chat_sessions():
+        sessions = []
+        # When local save is disabled, list from in-memory archive
+        if NO_LOCAL_SAVE:
+            archived = st.session_state.get("archived_sessions", [])
+            for data in archived:
+                sessions.append({
+                    "id": data.get("id"),
+                    "model": data.get("model_name", "unknown"),
+                    "created_at": data.get("created_at", ""),
+                    "title": data.get("title", data.get("id"))
+                })
+            sessions.sort(key=lambda s: s.get("created_at", ""), reverse=True)
+            return sessions
+        # Otherwise, read from disk
+        if not os.path.isdir(CHAT_DIR):
+            return sessions
+        for name in os.listdir(CHAT_DIR):
+            if name.endswith(".json"):
+                try:
+                    with open(os.path.join(CHAT_DIR, name), "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    sessions.append({
+                        "id": data.get("id", name[:-5]),
+                        "model": data.get("model_name", "unknown"),
+                        "created_at": data.get("created_at", ""),
+                        "title": data.get("title", data.get("id", name[:-5]))
+                    })
+                except Exception:
+                    continue
+        # Sort newest first
+        sessions.sort(key=lambda s: s.get("created_at", ""), reverse=True)
+        return sessions
+
+    def _remove_emojis(text: str) -> str:
+        try:
+            # Basic emoji removal via unicode ranges
+            import re
+            emoji_pattern = re.compile(
+                "[\U0001F600-\U0001F64F]"  # emoticons
+                "|[\U0001F300-\U0001F5FF]"  # symbols & pictographs
+                "|[\U0001F680-\U0001F6FF]"  # transport & map symbols
+                "|[\U0001F1E0-\U0001F1FF]"  # flags
+                "|[\U00002700-\U000027BF]"  # dingbats
+                "|[\U0001F900-\U0001F9FF]"  # supplemental symbols
+                "|[\U0001FA70-\U0001FAFF]"  # symbols & pictographs ext-A
+                ",",
+                flags=re.UNICODE,
+            )
+            return emoji_pattern.sub("", text)
+        except Exception:
+            return text
+
+    def save_current_chat(session_id: str, model: str, messages: List[Dict]):
+        payload = {
+            "id": session_id,
+            "model_name": model,
+            "created_at": st.session_state.get("session_created_at", datetime.utcnow().isoformat()),
+            "title": _remove_emojis((
+                # Use first words of the first user message as title when available
+                (next((m.get("content", "") for m in messages if m.get("role") == "user"), None) or st.session_state.get("session_title", session_id)).split("\n")[0][:60]
+            )),
+            "messages": [
+                {
+                    **m,
+                    "content": _remove_emojis(m.get("content", ""))
+                }
+                for m in messages
+            ],
+        }
+        if not NO_LOCAL_SAVE:
+            path = os.path.join(CHAT_DIR, f"{session_id}.json")
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(payload, f, ensure_ascii=False, indent=2)
+        else:
+            # Store in-memory archive
+            archived = st.session_state.get("archived_sessions", [])
+            # replace if same id exists
+            archived = [s for s in archived if s.get("id") != payload["id"]]
+            archived.append(payload)
+            st.session_state.archived_sessions = archived
+
+    def load_chat(session_id: str):
+        if NO_LOCAL_SAVE:
+            data = next((s for s in st.session_state.get("archived_sessions", []) if s.get("id") == session_id), None)
+            if not data:
+                return
+        else:
+            path = os.path.join(CHAT_DIR, f"{session_id}.json")
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        st.session_state.messages = data.get("messages", [])
+        st.session_state.current_session_id = data.get("id", session_id)
+        st.session_state.session_created_at = data.get("created_at", datetime.utcnow().isoformat())
+        st.session_state.session_title = data.get("title", session_id)
+
+    # Initialize session id
+    if "current_session_id" not in st.session_state:
+        st.session_state.current_session_id = f"chat-{int(time.time())}"
+        st.session_state.session_created_at = datetime.utcnow().isoformat()
+        st.session_state.session_title = "New Chat"
+
+    # Controls
+    st.subheader("Chat Sessions")
+    if st.button("New Chat"):
+            # Save existing chat before starting a new one
+            if st.session_state.get("messages"):
+                save_current_chat(st.session_state.current_session_id, model_name, st.session_state.messages)
+                # Also append structured entries to tests/results/results.json for analysis
+                try:
+                    if not NO_LOCAL_SAVE:
+                        results_dir = os.path.join(os.path.dirname(__file__), "tests", "results")
+                        os.makedirs(results_dir, exist_ok=True)
+                        results_path = os.path.join(results_dir, "results.json")
+                        # Load existing
+                        existing = []
+                        if os.path.exists(results_path):
+                            with open(results_path, "r", encoding="utf-8") as f:
+                                try:
+                                    existing = json.load(f)
+                                except Exception:
+                                    existing = []
+                        # Build entries from session messages (user-assistant pairs)
+                        entries = []
+                        messages = st.session_state.messages
+                        for i in range(0, len(messages)-1, 2):
+                            user_msg = messages[i]
+                            asst_msg = messages[i+1] if i+1 < len(messages) else None
+                            if user_msg.get("role") != "user" or not asst_msg or asst_msg.get("role") != "assistant":
+                                continue
+                            entry = {
+                                "query_index": len(existing) + len(entries),
+                                "query": user_msg.get("content", ""),
+                                "model": model_name,
+                                "latency_s": asst_msg.get("latency_s"),
+                                "end_to_end_latency_s": asst_msg.get("total_time_s"),
+                                "response_text": asst_msg.get("content", ""),
+                                "error": None,
+                                "approx_input_tokens": asst_msg.get("approx_input_tokens"),
+                                "approx_output_tokens": asst_msg.get("approx_output_tokens"),
+                            }
+                            entries.append(entry)
+                        with open(results_path, "w", encoding="utf-8") as f:
+                            json.dump(existing + entries, f, ensure_ascii=False, indent=2)
+                except Exception:
+                    pass
+            # Start new
+            st.session_state.current_session_id = f"chat-{int(time.time())}"
+            st.session_state.session_created_at = datetime.utcnow().isoformat()
+            st.session_state.session_title = "New Chat"
+            st.session_state.messages = []
+            st.rerun()
+
+    # Filter sessions by model or show all
+    sessions = list_chat_sessions()
+    # Minimal history list: each row has an Open button and a small X delete button
+    session_list = list_chat_sessions()
+    if not session_list:
+        st.info("No saved chats yet.")
+    else:
+        for s in session_list:
+            row = st.columns([6,1])
+            # Display only the chat title (first words), not the model
+            label = f"{s['title']}"
+            with row[0]:
+                if st.button(label, key=f"open_{s['id']}"):
+                    load_chat(s['id'])
+                    st.rerun()
+            with row[1]:
+                if st.button("x", key=f"del_{s['id']}"):
+                    try:
+                        was_current = st.session_state.get("current_session_id") == s['id']
+                        if NO_LOCAL_SAVE:
+                            st.session_state.archived_sessions = [a for a in st.session_state.get("archived_sessions", []) if a.get("id") != s['id']]
+                        else:
+                            os.remove(os.path.join(CHAT_DIR, f"{s['id']}.json"))
+                        if was_current:
+                            st.session_state.current_session_id = f"chat-{int(time.time())}"
+                            st.session_state.session_created_at = datetime.utcnow().isoformat()
+                            st.session_state.session_title = "New Chat"
+                            st.session_state.messages = []
+                    except Exception as e:
+                        st.error(f"Failed to delete: {e}")
+                    st.rerun()
+
+    st.markdown("---")
 
 # --- 1. Robust Initialization ---
 # Update cache to depend on the selected embedding model
@@ -160,7 +521,7 @@ def visualize_subgraph(combined_results: Dict):
                  h_node.get("star_rating"))
                  
         if score and isinstance(score, (int, float)) and float(score) > 8.0:
-            rating_label = f"⭐ {float(score):.1f}"
+            rating_label = f"Rating {float(score):.1f}"
             r_id = f"Rate_{node_key}"
             
             G.add_node(r_id, label=rating_label, color='#FFE66D', size=10, type='Rating') 
@@ -231,8 +592,8 @@ def visualize_subgraph(combined_results: Dict):
     return go.Figure(data=[edge_trace, edge_label_trace, node_trace], layout=go.Layout(showlegend=False, hovermode='closest', margin=dict(b=0,l=0,r=0,t=0), xaxis=dict(showgrid=False, zeroline=False, showticklabels=False), yaxis=dict(showgrid=False, zeroline=False, showticklabels=False), height=300))
 
 # --- 4. Main Chat Interface ---
-st.title("🌍 Graph-RAG Travel Assistant")
-st.markdown(f"Ask about hotels, visas, or reviews. \n\n*Current Embedding Model: `{selected_embedding_model}`*")
+st.title("Graph-RAG Travel Assistant")
+st.markdown(f"Ask about hotels, visas, or reviews.  Current embedding: {selected_embedding_model}")
 
 # Render Chat History
 for i, msg in enumerate(st.session_state.messages):
@@ -241,10 +602,10 @@ for i, msg in enumerate(st.session_state.messages):
         
         # Requirement: View KG-retrieved context, Cypher queries, & Visualization
         if "data" in msg:
-            with st.expander(f"🔍 View Graph Reasoning (Found {len(msg['data'].get('combined',{}).get('hotels',[]))} nodes)"):
+            with st.expander(f"View Graph Reasoning (Found {len(msg['data'].get('combined',{}).get('hotels',[]))} nodes"):
                 
                 # Tabbed view for cleaner UX
-                tab1, tab2, tab3 = st.tabs(["📄 KG Context", "🕸️ Graph Visualization", "⚡ Cypher Query"])
+                tab1, tab2, tab3 = st.tabs(["KG Context", "Graph Visualization", "Cypher Query"])
                 
                 with tab1:
                     st.markdown("**Raw Retrieval Context:**")
@@ -278,7 +639,7 @@ for i, msg in enumerate(st.session_state.messages):
                         st.info("No Cypher query was executed for this request (or Embeddings Only mode used).")
 
 # Input Handler
-if prompt := st.chat_input("Ex: Find high-rated hotels in Cairo"):
+if prompt := st.chat_input("Ask TAJR"):
     if not backend_ready:
         st.error("Backend is unavailable. Please check Neo4j connection.")
     else:
@@ -289,7 +650,7 @@ if prompt := st.chat_input("Ex: Find high-rated hotels in Cairo"):
 
         # 2. Process with Assistant
         with st.chat_message("assistant"):
-            status_box = st.status("🔍 Processing...", expanded=True)
+            status_box = st.status("Processing...", expanded=True)
             
             try:
                 start_time = time.perf_counter()
@@ -324,11 +685,11 @@ if prompt := st.chat_input("Ex: Find high-rated hotels in Cairo"):
                 latency = out["generation"].get("latency_s", 0)
                 
                 total_time = time.perf_counter() - start_time
-                status_box.update(label="✅ Complete", state="complete", expanded=False)
+                status_box.update(label="Complete", state="complete", expanded=False)
                 
                 # Display Result
                 st.markdown(response_text)
-                st.caption(f"⏱️ Total: {total_time:.2f}s | LLM: {latency:.2f}s | Nodes Retrieved: {len(retrieval_result.get('combined',{}).get('hotels',[]))}")
+                st.caption(f"Total: {total_time:.2f}s | LLM: {latency:.2f}s | Nodes Retrieved: {len(retrieval_result.get('combined',{}).get('hotels',[]))}")
 
                 # 3. Append Assistant Message (with data for visualization)
                 st.session_state.messages.append({
@@ -336,10 +697,25 @@ if prompt := st.chat_input("Ex: Find high-rated hotels in Cairo"):
                     "content": response_text,
                     "data": retrieval_result # Store full result for the expander view
                 })
+                # Attach timing metadata for results export
+                st.session_state.messages[-1]["latency_s"] = latency
+                st.session_state.messages[-1]["total_time_s"] = total_time
+                # Optional token estimates if available from model output
+                if "approx_input_tokens" in out:
+                    st.session_state.messages[-1]["approx_input_tokens"] = out.get("approx_input_tokens")
+                if "approx_output_tokens" in out:
+                    st.session_state.messages[-1]["approx_output_tokens"] = out.get("approx_output_tokens")
+
+                # Auto-save after assistant response for continuity
+                try:
+                    # Respect NO_LOCAL_SAVE when auto-saving
+                    save_current_chat(st.session_state.current_session_id, model_name, st.session_state.messages)
+                except Exception:
+                    pass
                 
                 # Rerun to render the new message with the expander correctly
                 st.rerun()
 
             except Exception as e:
-                status_box.update(label="❌ Error", state="error")
+                status_box.update(label="Error", state="error")
                 st.error(f"An error occurred: {str(e)}")
