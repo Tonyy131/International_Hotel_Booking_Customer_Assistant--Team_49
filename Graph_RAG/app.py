@@ -20,6 +20,133 @@ st.set_page_config(
     layout="wide"
 )
 
+# --- Animated Background (CSS only, no emojis) ---
+st.markdown(
+        """
+        <style>
+        :root {
+            --bg1: #0f2027;
+            --bg2: #203a43;
+            --bg3: #2c5364;
+            --sb1: #0b1720;
+            --sb2: #122634;
+            --sb-border: rgba(255,255,255,0.08);
+            --text: #e8f1f5;
+            --muted: #a9bdc8;
+            --accent: #34b3ff;
+            --accent-weak: rgba(52,179,255,0.15);
+        }
+
+        /* Smooth animated gradient base */
+        .stApp {
+            background: linear-gradient(120deg, var(--bg1), var(--bg2), var(--bg3));
+            background-size: 400% 400%;
+            animation: gradientShift 28s ease-in-out infinite;
+        }
+
+        /* Soft floating color blobs overlay */
+        .stApp::before, .stApp::after {
+            content: "";
+            position: fixed;
+            top: -20vh; left: -20vw; right: -20vw; bottom: -20vh;
+            pointer-events: none;
+            z-index: 0;
+            background:
+                radial-gradient(closest-side at 25% 35%, rgba(255, 0, 120, 0.08), transparent 60%),
+                radial-gradient(closest-side at 75% 65%, rgba(0, 200, 255, 0.07), transparent 60%),
+                radial-gradient(closest-side at 60% 25%, rgba(255, 200, 0, 0.05), transparent 60%);
+            filter: blur(64px);
+            transform: translate3d(0,0,0);
+        }
+
+        .stApp::before {
+            animation: floatBlob1 26s ease-in-out infinite alternate;
+        }
+        .stApp::after {
+            animation: floatBlob2 34s ease-in-out infinite alternate;
+            opacity: 0.85;
+        }
+
+        /* Ensure app content stays above the background layers */
+        .stApp > div {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Sidebar styling to match background palette */
+        [data-testid="stSidebar"] > div {
+            background: linear-gradient(160deg, var(--sb1) 0%, var(--sb2) 100%);
+            border-right: 1px solid var(--sb-border);
+            box-shadow: 8px 0 24px rgba(0,0,0,0.25);
+            color: var(--text);
+        }
+        [data-testid="stSidebar"] h1,
+        [data-testid="stSidebar"] h2,
+        [data-testid="stSidebar"] h3,
+        [data-testid="stSidebar"] h4,
+        [data-testid="stSidebar"] h5,
+        [data-testid="stSidebar"] h6,
+        [data-testid="stSidebar"] p,
+        [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] span { color: var(--text) !important; }
+        [data-testid="stSidebar"] .markdown-text-container p { color: var(--muted) !important; }
+
+        /* Inputs in sidebar */
+        [data-testid="stSidebar"] .stSelectbox > div > div,
+        [data-testid="stSidebar"] .stTextInput > div > div,
+        [data-testid="stSidebar"] .stMultiSelect > div > div,
+        [data-testid="stSidebar"] .stNumberInput > div > div,
+        [data-testid="stSidebar"] .stDateInput > div > div,
+        [data-testid="stSidebar"] .stTimeInput > div > div {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--sb-border);
+            color: var(--text);
+        }
+        [data-testid="stSidebar"] .stRadio > label,
+        [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label {
+            color: var(--text) !important;
+        }
+        [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label:hover {
+            background: var(--accent-weak);
+            border-radius: 6px;
+        }
+        [data-testid="stSidebar"] .stSelectbox [data-baseweb="select"] div {
+            color: var(--text);
+        }
+        [data-testid="stSidebar"] .stButton > button {
+            background: linear-gradient(180deg, rgba(52,179,255,0.18), rgba(52,179,255,0.10));
+            color: var(--text);
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            transition: all .15s ease-in-out;
+        }
+        [data-testid="stSidebar"] .stButton > button:hover {
+            box-shadow: 0 0 0 3px var(--accent-weak);
+            transform: translateY(-1px);
+        }
+
+        @keyframes gradientShift {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes floatBlob1 {
+            0%   { transform: translate(-2%, -1%) scale(1.00) rotate(0deg); }
+            50%  { transform: translate(3%, 2%) scale(1.05) rotate(10deg); }
+            100% { transform: translate(-1%, 1%) scale(1.00) rotate(0deg); }
+        }
+
+        @keyframes floatBlob2 {
+            0%   { transform: translate(1%, -2%) scale(1.00) rotate(0deg); }
+            50%  { transform: translate(-3%, 1%) scale(1.07) rotate(-8deg); }
+            100% { transform: translate(2%, -1%) scale(1.00) rotate(0deg); }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+)
+
 # --- Sidebar Configuration (Moved up for Initialization) ---
 with st.sidebar:
     st.title("Settings")
@@ -470,7 +597,7 @@ for i, msg in enumerate(st.session_state.messages):
                         st.info("No Cypher query was executed for this request (or Embeddings Only mode used).")
 
 # Input Handler
-if prompt := st.chat_input("Ex: Find high-rated hotels in Cairo"):
+if prompt := st.chat_input("Ask TAJR"):
     if not backend_ready:
         st.error("Backend is unavailable. Please check Neo4j connection.")
     else:
