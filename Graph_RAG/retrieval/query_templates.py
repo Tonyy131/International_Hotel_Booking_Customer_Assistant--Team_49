@@ -31,7 +31,7 @@ QUERY_TEMPLATES = {
         WHERE h.average_reviews_score >= $rating
         AND ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
-        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name } AS hotel
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name , country: co.name } AS hotel
         ORDER BY h.average_reviews_score DESC
         LIMIT $limit
     """,
@@ -41,7 +41,7 @@ QUERY_TEMPLATES = {
         WHERE h.star_rating >= $stars
         AND ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
-        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name } AS hotel
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name, country: co.name } AS hotel
         ORDER BY h.star_rating DESC
         LIMIT $limit
     """,
@@ -57,10 +57,24 @@ QUERY_TEMPLATES = {
 
     # Get reviews for a specific hotel (by exact name or id)
     "hotel_reviews_by_name": """
-        MATCH (r:Review)-[:REVIEWED]->(h:Hotel {name: $hotel})
-        RETURN r.review_id AS review_id, r.text AS text, r.score_overall AS score, r.date AS date
-        ORDER BY r.date DESC
-        LIMIT $limit
+    MATCH (r:Review)-[:REVIEWED]->(h:Hotel {name: $hotel})
+    -[:LOCATED_IN]->(c:City)
+    -[:LOCATED_IN]->(co:Country)
+
+    WITH h, c, co, avg(r.score_overall) AS avg_score, collect(r) AS reviews
+    UNWIND reviews AS r
+    WITH h, c, co, avg_score, r
+    ORDER BY r.date DESC
+    LIMIT 1
+
+    RETURN
+        h.name AS hotel_name,
+        r.review_id AS latest_review_id,
+        r.text AS latest_review_text,
+        avg_score AS total_avg_score,
+        r.date AS date,
+        c.name AS city,
+        co.name AS country
     """,
 
     "hotel_reviews_by_id": """
@@ -122,8 +136,8 @@ QUERY_TEMPLATES = {
 
     # Top N hotels overall
     "top_hotels": """
-        MATCH (h:Hotel)
-        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, average_reviews_score: h.average_reviews_score } AS hotel
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, city: c.name, country: co.name, average_reviews_score: h.average_reviews_score } AS hotel
         ORDER BY h.average_reviews_score DESC
         LIMIT $limit
     """,

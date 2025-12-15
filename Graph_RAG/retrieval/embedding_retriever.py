@@ -484,18 +484,16 @@ class EmbeddingRetriever:
             "top_k": top_k
         }
 
-        # 1. Build Location Match Clause dynamically
-        location_match = "MATCH (c:City)" # Default global base
+        # 1. Build Location Filter
+        location_match = "MATCH (c:City)" # Default global
         
         if cities:
-            # Works for 1 or multiple cities
             location_match = """
             MATCH (c:City)
             WHERE toLower(c.name) IN $cities
             """
             params["cities"] = [c.lower() for c in cities]
         elif countries:
-            # Works for 1 or multiple countries
             location_match = """
             MATCH (co:Country)
             WHERE toLower(co.name) IN $countries
@@ -503,10 +501,10 @@ class EmbeddingRetriever:
             """
             params["countries"] = [c.lower() for c in countries]
 
-        # 2. Build Rating Clause
+        # 2. Build Rating Filter
         rating_clause = self._build_rating_clause(rating_filter, params)
 
-        # 3. Assemble Full Cypher
+        # 3. Full Cypher Query
         cypher = f"""
         {location_match}
         MATCH (h:Hotel)-[:LOCATED_IN]->(c)
@@ -519,13 +517,39 @@ class EmbeddingRetriever:
         YIELD node, score
         WHERE node IN hotels
 
-        RETURN node.name AS name, node.hotel_id AS hotel_id, score
+        MATCH (node)-[:LOCATED_IN]->(c_res:City)-[:LOCATED_IN]->(co_res:Country)
+        OPTIONAL MATCH (node)<-[:REVIEWED]-(r:Review)
+
+        WITH node, score, c_res, co_res, collect(r.text)[0..3] AS review_texts
+        
+        RETURN 
+            node AS h, 
+            c_res.name AS city_name, 
+            co_res.name AS country_name, 
+            review_texts, 
+            score
         ORDER BY score DESC
-        LIMIT $top_k
         """
 
-        return self.db.run_query(cypher, params)
-    
+        results = self.db.run_query(cypher, params)
+
+        # --- 4. Post-Processing: Remove Vector Embeddings ---
+        cleaned_results = []
+        for row in results:
+            if 'h' in row:
+                # Convert Neo4j Node to a mutable dictionary
+                hotel_props = dict(row['h'])
+                
+                # Remove the heavy embedding vectors
+                hotel_props.pop('embedding_minilm', None)
+                hotel_props.pop('embedding_bge', None)
+                
+                # Update the row with the cleaned dictionary
+                row['h'] = hotel_props
+            
+            cleaned_results.append(row)
+
+        return cleaned_results
 
     def get_visa_free_countries(self, origin_country: str) -> List[str]:
         """
