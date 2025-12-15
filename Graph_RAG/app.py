@@ -665,6 +665,7 @@ if prompt := st.chat_input("Ask TAJR"):
                 # Calling the cached pipeline - safe_retrieve handles errors gracefully
                 retrieval_result = pipeline.safe_retrieve(
                     query=prompt,
+                    limit=1000,
                     user_embeddings=use_embeddings,
                     user_baseline=use_baseline,
                     use_llm=True
