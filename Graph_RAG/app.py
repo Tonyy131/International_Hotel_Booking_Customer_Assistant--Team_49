@@ -3,6 +3,9 @@ import time
 import networkx as nx
 import plotly.graph_objects as go
 from typing import Dict, List
+import os
+import json
+from datetime import datetime
 
 # --- Backend Imports ---
 try:
@@ -14,17 +17,16 @@ except ImportError:
 # --- Page Config ---
 st.set_page_config(
     page_title="Graph-RAG Travel Assistant",
-    page_icon="🌍",
     layout="wide"
 )
 
 # --- Sidebar Configuration (Moved up for Initialization) ---
 with st.sidebar:
-    st.title("⚙️ Settings")
+    st.title("Settings")
     
     # Requirement: Compare at least 3 models
     model_name = st.selectbox(
-        "Select LLM Model",
+        "Model",
         options=[
             "Qwen/Qwen2.5-1.5B-Instruct",
             "meta-llama/Llama-3.1-8B-Instruct", 
@@ -38,7 +40,7 @@ with st.sidebar:
     # NEW: Embedding Model Selection
     # Maps user-friendly names to internal keys expected by RetrievalPipeline
     embedding_option = st.radio(
-        "Embedding Model",
+        "Embedding",
         options=["MiniLM (ll-MiniLM-L6-v2)", "BGE (bge-small-en-v1.5)"],
         index=0
     )
@@ -51,7 +53,7 @@ with st.sidebar:
 
     # Requirement: Retrieval Method Selection
     retrieval_method = st.radio(
-        "Retrieval Strategy",
+        "Retrieval",
         options=["Hybrid (Baseline + Embeddings)", "Baseline Only", "Embeddings Only"],
         index=0
     )
@@ -64,10 +66,194 @@ with st.sidebar:
     elif retrieval_method == "Embeddings Only":
         use_baseline = False
 
-    st.divider()
-    if st.button("🗑️ Clear Chat History"):
-        st.session_state.messages = []
-        st.rerun()
+    st.markdown("---")
+    # Local persistence disabled permanently
+    NO_LOCAL_SAVE = True
+    # --- Chat Session Management ---
+    # Persist chats to disk so users can reopen old chats across models
+    CHAT_DIR = os.path.join(os.path.dirname(__file__), "chat_history")
+    # Do not create chat directory when local saving is disabled
+
+    def list_chat_sessions():
+        sessions = []
+        # When local save is disabled, list from in-memory archive
+        if NO_LOCAL_SAVE:
+            archived = st.session_state.get("archived_sessions", [])
+            for data in archived:
+                sessions.append({
+                    "id": data.get("id"),
+                    "model": data.get("model_name", "unknown"),
+                    "created_at": data.get("created_at", ""),
+                    "title": data.get("title", data.get("id"))
+                })
+            sessions.sort(key=lambda s: s.get("created_at", ""), reverse=True)
+            return sessions
+        # Otherwise, read from disk
+        if not os.path.isdir(CHAT_DIR):
+            return sessions
+        for name in os.listdir(CHAT_DIR):
+            if name.endswith(".json"):
+                try:
+                    with open(os.path.join(CHAT_DIR, name), "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    sessions.append({
+                        "id": data.get("id", name[:-5]),
+                        "model": data.get("model_name", "unknown"),
+                        "created_at": data.get("created_at", ""),
+                        "title": data.get("title", data.get("id", name[:-5]))
+                    })
+                except Exception:
+                    continue
+        # Sort newest first
+        sessions.sort(key=lambda s: s.get("created_at", ""), reverse=True)
+        return sessions
+
+    def _remove_emojis(text: str) -> str:
+        try:
+            # Basic emoji removal via unicode ranges
+            import re
+            emoji_pattern = re.compile(
+                "[\U0001F600-\U0001F64F]"  # emoticons
+                "|[\U0001F300-\U0001F5FF]"  # symbols & pictographs
+                "|[\U0001F680-\U0001F6FF]"  # transport & map symbols
+                "|[\U0001F1E0-\U0001F1FF]"  # flags
+                "|[\U00002700-\U000027BF]"  # dingbats
+                "|[\U0001F900-\U0001F9FF]"  # supplemental symbols
+                "|[\U0001FA70-\U0001FAFF]"  # symbols & pictographs ext-A
+                ",",
+                flags=re.UNICODE,
+            )
+            return emoji_pattern.sub("", text)
+        except Exception:
+            return text
+
+    def save_current_chat(session_id: str, model: str, messages: List[Dict]):
+        payload = {
+            "id": session_id,
+            "model_name": model,
+            "created_at": st.session_state.get("session_created_at", datetime.utcnow().isoformat()),
+            "title": _remove_emojis((
+                # Use first words of the first user message as title when available
+                (next((m.get("content", "") for m in messages if m.get("role") == "user"), None) or st.session_state.get("session_title", session_id)).split("\n")[0][:60]
+            )),
+            "messages": [
+                {
+                    **m,
+                    "content": _remove_emojis(m.get("content", ""))
+                }
+                for m in messages
+            ],
+        }
+        if not NO_LOCAL_SAVE:
+            path = os.path.join(CHAT_DIR, f"{session_id}.json")
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(payload, f, ensure_ascii=False, indent=2)
+        else:
+            # Store in-memory archive
+            archived = st.session_state.get("archived_sessions", [])
+            # replace if same id exists
+            archived = [s for s in archived if s.get("id") != payload["id"]]
+            archived.append(payload)
+            st.session_state.archived_sessions = archived
+
+    def load_chat(session_id: str):
+        if NO_LOCAL_SAVE:
+            data = next((s for s in st.session_state.get("archived_sessions", []) if s.get("id") == session_id), None)
+            if not data:
+                return
+        else:
+            path = os.path.join(CHAT_DIR, f"{session_id}.json")
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        st.session_state.messages = data.get("messages", [])
+        st.session_state.current_session_id = data.get("id", session_id)
+        st.session_state.session_created_at = data.get("created_at", datetime.utcnow().isoformat())
+        st.session_state.session_title = data.get("title", session_id)
+
+    # Initialize session id
+    if "current_session_id" not in st.session_state:
+        st.session_state.current_session_id = f"chat-{int(time.time())}"
+        st.session_state.session_created_at = datetime.utcnow().isoformat()
+        st.session_state.session_title = "New Chat"
+
+    # Controls
+    st.subheader("Chat Sessions")
+    if st.button("New Chat"):
+            # Save existing chat before starting a new one
+            if st.session_state.get("messages"):
+                save_current_chat(st.session_state.current_session_id, model_name, st.session_state.messages)
+                # Also append structured entries to tests/results/results.json for analysis
+                try:
+                    if not NO_LOCAL_SAVE:
+                        results_dir = os.path.join(os.path.dirname(__file__), "tests", "results")
+                        os.makedirs(results_dir, exist_ok=True)
+                        results_path = os.path.join(results_dir, "results.json")
+                        # Load existing
+                        existing = []
+                        if os.path.exists(results_path):
+                            with open(results_path, "r", encoding="utf-8") as f:
+                                try:
+                                    existing = json.load(f)
+                                except Exception:
+                                    existing = []
+                        # Build entries from session messages (user-assistant pairs)
+                        entries = []
+                        messages = st.session_state.messages
+                        for i in range(0, len(messages)-1, 2):
+                            user_msg = messages[i]
+                            asst_msg = messages[i+1] if i+1 < len(messages) else None
+                            if user_msg.get("role") != "user" or not asst_msg or asst_msg.get("role") != "assistant":
+                                continue
+                            entry = {
+                                "query_index": len(existing) + len(entries),
+                                "query": user_msg.get("content", ""),
+                                "model": model_name,
+                                "latency_s": asst_msg.get("latency_s"),
+                                "end_to_end_latency_s": asst_msg.get("total_time_s"),
+                                "response_text": asst_msg.get("content", ""),
+                                "error": None,
+                                "approx_input_tokens": asst_msg.get("approx_input_tokens"),
+                                "approx_output_tokens": asst_msg.get("approx_output_tokens"),
+                            }
+                            entries.append(entry)
+                        with open(results_path, "w", encoding="utf-8") as f:
+                            json.dump(existing + entries, f, ensure_ascii=False, indent=2)
+                except Exception:
+                    pass
+            # Start new
+            st.session_state.current_session_id = f"chat-{int(time.time())}"
+            st.session_state.session_created_at = datetime.utcnow().isoformat()
+            st.session_state.session_title = "New Chat"
+            st.session_state.messages = []
+            st.rerun()
+
+    # Filter sessions by model or show all
+    sessions = list_chat_sessions()
+    # Minimal history list: each row has an Open button and a small X delete button
+    session_list = list_chat_sessions()
+    if not session_list:
+        st.info("No saved chats yet.")
+    else:
+        for s in session_list:
+            row = st.columns([6,1])
+            # Display only the chat title (first words), not the model
+            label = f"{s['title']}"
+            with row[0]:
+                if st.button(label, key=f"open_{s['id']}"):
+                    load_chat(s['id'])
+                    st.rerun()
+            with row[1]:
+                if st.button("x", key=f"del_{s['id']}"):
+                    try:
+                        if NO_LOCAL_SAVE:
+                            st.session_state.archived_sessions = [a for a in st.session_state.get("archived_sessions", []) if a.get("id") != s['id']]
+                        else:
+                            os.remove(os.path.join(CHAT_DIR, f"{s['id']}.json"))
+                    except Exception as e:
+                        st.error(f"Failed to delete: {e}")
+                    st.rerun()
+
+    st.markdown("---")
 
 # --- 1. Robust Initialization ---
 # Update cache to depend on the selected embedding model
@@ -231,8 +417,8 @@ def visualize_subgraph(combined_results: Dict):
     return go.Figure(data=[edge_trace, edge_label_trace, node_trace], layout=go.Layout(showlegend=False, hovermode='closest', margin=dict(b=0,l=0,r=0,t=0), xaxis=dict(showgrid=False, zeroline=False, showticklabels=False), yaxis=dict(showgrid=False, zeroline=False, showticklabels=False), height=300))
 
 # --- 4. Main Chat Interface ---
-st.title("🌍 Graph-RAG Travel Assistant")
-st.markdown(f"Ask about hotels, visas, or reviews. \n\n*Current Embedding Model: `{selected_embedding_model}`*")
+st.title("Graph-RAG Travel Assistant")
+st.markdown(f"Ask about hotels, visas, or reviews.  Current embedding: {selected_embedding_model}")
 
 # Render Chat History
 for i, msg in enumerate(st.session_state.messages):
@@ -336,6 +522,21 @@ if prompt := st.chat_input("Ex: Find high-rated hotels in Cairo"):
                     "content": response_text,
                     "data": retrieval_result # Store full result for the expander view
                 })
+                # Attach timing metadata for results export
+                st.session_state.messages[-1]["latency_s"] = latency
+                st.session_state.messages[-1]["total_time_s"] = total_time
+                # Optional token estimates if available from model output
+                if "approx_input_tokens" in out:
+                    st.session_state.messages[-1]["approx_input_tokens"] = out.get("approx_input_tokens")
+                if "approx_output_tokens" in out:
+                    st.session_state.messages[-1]["approx_output_tokens"] = out.get("approx_output_tokens")
+
+                # Auto-save after assistant response for continuity
+                try:
+                    # Respect NO_LOCAL_SAVE when auto-saving
+                    save_current_chat(st.session_state.current_session_id, model_name, st.session_state.messages)
+                except Exception:
+                    pass
                 
                 # Rerun to render the new message with the expander correctly
                 st.rerun()
