@@ -38,6 +38,7 @@ class BaselineRetriever:
                 else:
                     # fallback: return the raw record (for queries like reviews or visa)
                     cleaned.append(rec)
+
             return cleaned, QUERY_TEMPLATES[cypher_key]
 
         print("BaselineRetriever: intent =", intent, "entities =", e)
@@ -49,7 +50,9 @@ class BaselineRetriever:
             if rf and rf.get("type") != "none" and rf.get("type") == "stars":
                 op = rf.get("operator")
                 if op == "gte" and rf.get("value") is not None:
-                    params = {"rating": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                    params = {"stars": rf["value"], "cities": cities, "countries": countries, "limit": limit}
+                if op == "gte" and rf.get("value") is not None:
+                    params = {"stars": rf["value"], "cities": cities, "countries": countries, "limit": limit}
                     return _exec_and_extract("hotel_search_min_stars", params)
 
                 if op == "lte" and rf.get("value") is not None:
@@ -346,7 +349,7 @@ class BaselineRetriever:
                                         {"cities": e.get("cities", []), "countries": e.get("countries", []), "limit": limit})
 
             if e.get("hotels"):
-                return self.db.run_query(QUERY_TEMPLATES["hotel_reviews_by_name"], {"hotel": e["hotels"][0], "limit": limit})
+                return _exec_and_extract("hotel_reviews_by_name", {"hotel": e["hotels"][0], "limit": limit})
             return []
 
         # --- recommendation ---
