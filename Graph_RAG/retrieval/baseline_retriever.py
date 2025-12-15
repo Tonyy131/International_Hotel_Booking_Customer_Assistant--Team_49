@@ -12,7 +12,7 @@ class BaselineRetriever:
         self.db = neo4j_connector or Neo4jConnector()
 
     def retrieve(self, intent: str, entities: Dict[str, Any], limit: int = 10):
-        intent = intent or "generic_qa"
+        intent = intent or "hotel_search"
         e = entities or {}
 
         def _exec_and_extract(cypher_key, params):

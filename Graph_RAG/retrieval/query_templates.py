@@ -61,9 +61,17 @@ QUERY_TEMPLATES = {
     -[:LOCATED_IN]->(c:City)
     -[:LOCATED_IN]->(co:Country)
 
-    WITH h, c, co, avg(r.score_overall) AS avg_score, collect(r) AS reviews
+    WITH h, c, co, 
+         avg(r.score_overall) AS avg_score, 
+         avg(r.score_cleanliness) AS avg_cleanliness,
+         avg(r.score_comfort) AS avg_comfort,
+         avg(r.score_facilities) AS avg_facilities,
+         avg(r.score_staff) AS avg_staff,
+         avg(r.score_value_for_money) AS avg_money,
+         collect(r) AS reviews
+
     UNWIND reviews AS r
-    WITH h, c, co, avg_score, r
+    WITH h, c, co, avg_score, avg_cleanliness, avg_comfort, avg_facilities, avg_staff, avg_money, r
     ORDER BY r.date DESC
     LIMIT 1
 
@@ -72,6 +80,11 @@ QUERY_TEMPLATES = {
         r.review_id AS latest_review_id,
         r.text AS latest_review_text,
         avg_score AS total_avg_score,
+        avg_cleanliness AS avg_score_cleanliness,
+        avg_comfort AS avg_score_comfort,
+        avg_facilities AS avg_score_facilities,
+        avg_staff AS avg_score_staff,
+        avg_money AS avg_score_value_for_money,
         r.date AS date,
         c.name AS city,
         co.name AS country
@@ -226,7 +239,7 @@ QUERY_TEMPLATES = {
         WHERE h.star_rating = $value
         AND ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
-        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name } AS hotel
+        RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name ,country: co.name} AS hotel
         ORDER BY h.star_rating DESC
         LIMIT $limit
     """,
@@ -239,7 +252,7 @@ QUERY_TEMPLATES = {
         WITH h, c, co, avg(r.score_cleanliness) AS avg_cleanliness
         WHERE avg_cleanliness >= $rating
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
-                   average_reviews_score: h.average_reviews_score, avg_score_cleanliness: avg_cleanliness, city: c.name } AS hotel
+                   average_reviews_score: h.average_reviews_score, avg_score_cleanliness: avg_cleanliness, city: c.name , country: co.name} AS hotel
         ORDER BY avg_cleanliness DESC
         LIMIT $limit
     """,
@@ -253,7 +266,7 @@ QUERY_TEMPLATES = {
         WITH h, c, co, avg(r.score_cleanliness) AS avg_cleanliness
         WHERE avg_cleanliness <= $max
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
-                   average_reviews_score: h.average_reviews_score, avg_score_cleanliness: avg_cleanliness, city: c.name } AS hotel
+                   average_reviews_score: h.average_reviews_score, avg_score_cleanliness: avg_cleanliness, city: c.name ,country: co.name} AS hotel
         ORDER BY avg_cleanliness DESC
         LIMIT $limit
     """,
@@ -267,7 +280,7 @@ QUERY_TEMPLATES = {
         WITH h, c, co, avg(r.score_cleanliness) AS avg_cleanliness
         WHERE avg_cleanliness >= $min AND avg_cleanliness <= $max
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
-                   average_reviews_score: h.average_reviews_score, avg_score_cleanliness: avg_cleanliness, city: c.name } AS hotel
+                   average_reviews_score: h.average_reviews_score, avg_score_cleanliness: avg_cleanliness, city: c.name ,country: co.name} AS hotel
         ORDER BY avg_cleanliness DESC
         LIMIT $limit
     """,
@@ -281,7 +294,7 @@ QUERY_TEMPLATES = {
         WITH h, c, co, avg(r.score_cleanliness) AS avg_cleanliness
         WHERE floor(avg_cleanliness * 10) / 10 = $value
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
-                   average_reviews_score: h.average_reviews_score, avg_score_cleanliness: avg_cleanliness, city: c.name } AS hotel
+                   average_reviews_score: h.average_reviews_score, avg_score_cleanliness: avg_cleanliness, city: c.name,country: co.name } AS hotel
         ORDER BY avg_cleanliness DESC
         LIMIT $limit
     """,
@@ -293,7 +306,7 @@ QUERY_TEMPLATES = {
         OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
         WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
-        WITH h, c, avg(r.score_cleanliness) AS avg_cleanliness
+        WITH h, c, avg(r.score_cleanliness) AS avg_cleanliness, co
         WHERE avg_cleanliness IS NOT NULL
         RETURN h {
             .*, 
@@ -302,7 +315,8 @@ QUERY_TEMPLATES = {
             star_rating: h.star_rating,
             average_reviews_score: h.average_reviews_score,
             avg_score_cleanliness: avg_cleanliness,
-            city: c.name
+            city: c.name,
+            country: co.name
         } AS hotel
         ORDER BY avg_cleanliness DESC
         LIMIT $limit
@@ -314,7 +328,7 @@ QUERY_TEMPLATES = {
         OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
         WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
-        WITH h, c, avg(r.score_cleanliness) AS avg_cleanliness
+        WITH h, c, avg(r.score_cleanliness) AS avg_cleanliness, co
         WHERE avg_cleanliness IS NOT NULL
         RETURN h {
             .*, 
@@ -323,7 +337,8 @@ QUERY_TEMPLATES = {
             star_rating: h.star_rating,
             average_reviews_score: h.average_reviews_score,
             avg_score_cleanliness: avg_cleanliness,
-            city: c.name
+            city: c.name,
+            country: co.name
         } AS hotel
         ORDER BY avg_cleanliness ASC
         LIMIT $limit
@@ -348,7 +363,7 @@ QUERY_TEMPLATES = {
         WITH h, c, co, avg(r.score_comfort) AS avg_comfort
         WHERE avg_comfort >= $rating
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
-                   average_reviews_score: h.average_reviews_score, avg_score_comfort: avg_comfort, city: c.name } AS hotel
+                   average_reviews_score: h.average_reviews_score, avg_score_comfort: avg_comfort, city: c.name, country: co.name } AS hotel
         ORDER BY avg_comfort DESC
         LIMIT $limit
     """,
@@ -362,7 +377,7 @@ QUERY_TEMPLATES = {
         WITH h, c, co, avg(r.score_comfort) AS avg_comfort
         WHERE avg_comfort <= $max
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
-                   average_reviews_score: h.average_reviews_score, avg_score_comfort: avg_comfort, city: c.name } AS hotel
+                   average_reviews_score: h.average_reviews_score, avg_score_comfort: avg_comfort, city: c.name,country: co.name } AS hotel
         ORDER BY avg_comfort DESC
         LIMIT $limit
     """,
@@ -376,7 +391,7 @@ QUERY_TEMPLATES = {
         WITH h, c, co, avg(r.score_comfort) AS avg_comfort
         WHERE avg_comfort >= $min AND avg_comfort <= $max
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
-                   average_reviews_score: h.average_reviews_score, avg_score_comfort: avg_comfort, city: c.name } AS hotel
+                   average_reviews_score: h.average_reviews_score, avg_score_comfort: avg_comfort, city: c.name,country: co.name } AS hotel
         ORDER BY avg_comfort DESC
         LIMIT $limit
     """,
@@ -390,7 +405,7 @@ QUERY_TEMPLATES = {
         WITH h, c, co, avg(r.score_comfort) AS avg_comfort
         WHERE floor(avg_comfort * 10) / 10 = $value
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
-                   average_reviews_score: h.average_reviews_score, avg_score_comfort: avg_comfort, city: c.name } AS hotel
+                   average_reviews_score: h.average_reviews_score, avg_score_comfort: avg_comfort, city: c.name,country: co.name } AS hotel
         ORDER BY avg_comfort DESC
         LIMIT $limit
     """,
@@ -400,7 +415,7 @@ QUERY_TEMPLATES = {
         OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
         WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
-        WITH h, c, avg(r.score_comfort) AS avg_comfort
+        WITH h, c, avg(r.score_comfort) AS avg_comfort , co
         WHERE avg_comfort IS NOT NULL
         RETURN h {
             .*, 
@@ -409,7 +424,8 @@ QUERY_TEMPLATES = {
             star_rating: h.star_rating,
             average_reviews_score: h.average_reviews_score,
             avg_score_comfort: avg_comfort,
-            city: c.name
+            city: c.name,
+            country: co.name
         } AS hotel
         ORDER BY avg_comfort DESC
         LIMIT $limit
@@ -420,7 +436,7 @@ QUERY_TEMPLATES = {
         OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
         WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
-        WITH h, c, avg(r.score_comfort) AS avg_comfort
+        WITH h, c, avg(r.score_comfort) AS avg_comfort , co
         WHERE avg_comfort IS NOT NULL
         RETURN h {
             .*, 
@@ -429,7 +445,8 @@ QUERY_TEMPLATES = {
             star_rating: h.star_rating,
             average_reviews_score: h.average_reviews_score,
             avg_score_comfort: avg_comfort,
-            city: c.name
+            city: c.name,
+            country: co.name
         } AS hotel
         ORDER BY avg_comfort ASC
         LIMIT $limit
@@ -473,7 +490,8 @@ QUERY_TEMPLATES = {
             star_rating: h.star_rating,
             average_reviews_score: h.average_reviews_score,
             avg_score_facilities: avg_facilities,
-            city: c.name
+            city: c.name,
+            country: co.name
         } AS hotel
         ORDER BY avg_facilities DESC
         LIMIT $limit
@@ -494,7 +512,8 @@ QUERY_TEMPLATES = {
             star_rating: h.star_rating,
             average_reviews_score: h.average_reviews_score,
             avg_score_facilities: avg_facilities,
-            city: c.name
+            city: c.name,
+            country: co.name
         } AS hotel
         ORDER BY avg_facilities DESC
         LIMIT $limit
@@ -515,7 +534,8 @@ QUERY_TEMPLATES = {
             star_rating: h.star_rating,
             average_reviews_score: h.average_reviews_score,
             avg_score_facilities: avg_facilities,
-            city: c.name
+            city: c.name,
+            country: co.name
         } AS hotel
         ORDER BY avg_facilities DESC
         LIMIT $limit
@@ -536,7 +556,8 @@ QUERY_TEMPLATES = {
             star_rating: h.star_rating,
             average_reviews_score: h.average_reviews_score,
             avg_score_facilities: avg_facilities,
-            city: c.name
+            city: c.name,
+            country: co.name
         } AS hotel
         ORDER BY avg_facilities DESC
         LIMIT $limit
@@ -557,7 +578,8 @@ QUERY_TEMPLATES = {
             star_rating: h.star_rating,
             average_reviews_score: h.average_reviews_score,
             avg_score_facilities: avg_facilities,
-            city: c.name
+            city: c.name,
+            country: co.name
         } AS hotel
         ORDER BY avg_facilities DESC
         LIMIT $limit
@@ -578,7 +600,8 @@ QUERY_TEMPLATES = {
             star_rating: h.star_rating,
             average_reviews_score: h.average_reviews_score,
             avg_score_facilities: avg_facilities,
-            city: c.name
+            city: c.name,
+            country: co.name
         } AS hotel
         ORDER BY avg_facilities ASC
         LIMIT $limit
@@ -598,7 +621,8 @@ QUERY_TEMPLATES = {
             star_rating: h.star_rating,
             average_reviews_score: h.average_reviews_score,
             avg_score_staff: avg_staff,
-            city: c.name
+            city: c.name,
+            country: co.name
         } AS hotel
         ORDER BY avg_staff DESC
         LIMIT $limit
@@ -618,7 +642,8 @@ QUERY_TEMPLATES = {
             star_rating: h.star_rating,
             average_reviews_score: h.average_reviews_score,
             avg_score_staff: avg_staff,
-            city: c.name
+            city: c.name,
+            country: co.name
         } AS hotel
         ORDER BY avg_staff DESC
         LIMIT $limit
@@ -638,7 +663,8 @@ QUERY_TEMPLATES = {
             star_rating: h.star_rating,
             average_reviews_score: h.average_reviews_score,
             avg_score_staff: avg_staff,
-            city: c.name
+            city: c.name,
+            country: co.name
         } AS hotel
         ORDER BY avg_staff DESC
         LIMIT $limit
@@ -658,7 +684,8 @@ QUERY_TEMPLATES = {
             star_rating: h.star_rating,
             average_reviews_score: h.average_reviews_score,
             avg_score_staff: avg_staff,
-            city: c.name
+            city: c.name,
+            country: co.name
         } AS hotel
         ORDER BY avg_staff DESC
         LIMIT $limit
@@ -678,7 +705,8 @@ QUERY_TEMPLATES = {
             star_rating: h.star_rating,
             average_reviews_score: h.average_reviews_score,
             avg_score_staff: avg_staff,
-            city: c.name
+            city: c.name,
+            country: co.name
         } AS hotel
         ORDER BY avg_staff DESC
         LIMIT $limit
@@ -698,7 +726,8 @@ QUERY_TEMPLATES = {
             star_rating: h.star_rating,
             average_reviews_score: h.average_reviews_score,
             avg_score_staff: avg_staff,
-            city: c.name
+            city: c.name,
+            country: co.name
         } AS hotel
         ORDER BY avg_staff ASC
         LIMIT $limit
@@ -718,7 +747,8 @@ QUERY_TEMPLATES = {
         star_rating: h.star_rating,
         average_reviews_score: h.average_reviews_score,
         avg_score_value_for_money: avg_value,
-        city: c.name
+        city: c.name,
+        country: co.name
     } AS hotel
     ORDER BY avg_value DESC
     LIMIT $limit
@@ -738,7 +768,8 @@ QUERY_TEMPLATES = {
         star_rating: h.star_rating,
         average_reviews_score: h.average_reviews_score,
         avg_score_value_for_money: avg_value,
-        city: c.name
+        city: c.name,
+        country: co.name
     } AS hotel
     ORDER BY avg_value DESC
     LIMIT $limit
@@ -758,7 +789,8 @@ QUERY_TEMPLATES = {
         star_rating: h.star_rating,
         average_reviews_score: h.average_reviews_score,
         avg_score_value_for_money: avg_value,
-        city: c.name
+        city: c.name,
+        country: co.name
     } AS hotel
     ORDER BY avg_value DESC
     LIMIT $limit
@@ -778,7 +810,8 @@ QUERY_TEMPLATES = {
         star_rating: h.star_rating,
         average_reviews_score: h.average_reviews_score,
         avg_score_value_for_money: avg_value,
-        city: c.name
+        city: c.name,
+        country: co.name
     } AS hotel
     ORDER BY avg_value DESC
     LIMIT $limit
@@ -798,7 +831,8 @@ QUERY_TEMPLATES = {
         star_rating: h.star_rating,
         average_reviews_score: h.average_reviews_score,
         avg_score_value_for_money: avg_value,
-        city: c.name
+        city: c.name,
+        country: co.name
     } AS hotel
     ORDER BY avg_value DESC
     LIMIT $limit
@@ -818,7 +852,8 @@ QUERY_TEMPLATES = {
         star_rating: h.star_rating,
         average_reviews_score: h.average_reviews_score,
         avg_score_value_for_money: avg_value,
-        city: c.name
+        city: c.name,
+        country: co.name
     } AS hotel
     ORDER BY avg_value ASC
     LIMIT $limit

@@ -66,6 +66,7 @@ STRICT RULES:
 5. Hotels:
    - Only extract hotel names mentioned directly.
    - Do NOT invent or guess hotel names.
+   - Hotel names examples: "The Azure Tower", "The Royal Compass", "L'Étoile Palace","Kyo-to Grand","The Golden Oasis","Marina Bay Zenith","Sydney Harbour Grand","Copacabana Lux","Berlin Mitte Elite","The Maple Grove","The Bund Palace","Aztec Heights","The Gateway Royale","Colosseum Gardens","Table Mountain View","Han River Oasis","Kremlin Suites","Nile Grandeur","Gaudi's Retreat","The Orchid Palace","The Bosphorus Inn","Canal House Grand","Tango Boutique","The Savannah House","The Kiwi Grand".
 
 6. Output must ALWAYS be valid JSON matching the schema.
 

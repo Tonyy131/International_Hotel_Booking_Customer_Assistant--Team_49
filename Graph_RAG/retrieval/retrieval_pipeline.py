@@ -147,9 +147,29 @@ class RetrievalPipeline:
                 if star_rating:
                     line += f" | {star_rating} Stars"
 
-                    
+
                 if avg_score:
                     line += f" | Global Rating: {float(avg_score):.1f}/10"
+
+                cat_scores = []
+                categories = [
+                    ("avg_score_cleanliness", "Cleanliness"),
+                    ("avg_score_comfort", "Comfort"),
+                    ("avg_score_facilities", "Facilities"),
+                    ("avg_score_staff", "Staff")
+                ]
+
+                for key, label in categories:
+                    val = hotel_node.get(key)
+                    # Fallback to base score if dynamic average is missing/None
+                    if val is None:
+                        val = hotel_node.get(f"{key.replace('avg_score_', '')}_base")
+                        
+                    if val is not None:
+                        cat_scores.append(f"{label}: {float(val):.1f}")
+                
+                if cat_scores:
+                    line += " | [" + ", ".join(cat_scores) + "]"
 
                 # --- C. Extract Traveler Type Scores ---
                 traveller_scores = []

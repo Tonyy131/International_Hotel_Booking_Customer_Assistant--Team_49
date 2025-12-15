@@ -477,80 +477,165 @@ class EmbeddingRetriever:
             
         return clause
     
-    def _search_hotels_generic(self, embedding: List[float], cities: List[str] = None, countries: List[str] = None, top_k: int = 10, rating_filter: dict = None):
+
+    def _build_pre_filter(self, rating_filter: dict, params: dict) -> str:
+        """
+        Builds WHERE clause for properties that exist ON THE HOTEL NODE.
+        (Stars, Global Score).
+        """
+        if not rating_filter or rating_filter.get("type") not in ["stars", "reviews"]:
+            return ""
+
+        r_type = rating_filter.get("type")
+        op = rating_filter.get("operator")
+        val = rating_filter.get("value")
+        min_val = rating_filter.get("min")
+        max_val = rating_filter.get("max")
+        
+        # Map to static node properties
+        field = "h.star_rating" if r_type == "stars" else "h.average_reviews_score"
+
+        clause = ""
+        if op == "gte" and val is not None:
+            clause = f"AND {field} >= $pre_min"
+            params["pre_min"] = float(val)
+        elif op == "lte" and val is not None:
+            clause = f"AND {field} <= $pre_max"
+            params["pre_max"] = float(val)
+        elif op == "between":
+            clause = f"AND {field} >= $pre_min AND {field} <= $pre_max"
+            params["pre_min"] = float(min_val)
+            params["pre_max"] = float(max_val)
+        elif op == "eq" and val is not None:
+            clause = f"AND {field} = $pre_eq"
+            params["pre_eq"] = float(val)
+            
+        return clause
+
+    def _build_post_filter(self, rating_filter: dict, params: dict) -> str:
+        """
+        Builds WHERE clause for calculated aggregates FROM REVIEWS.
+        (Cleanliness, Comfort, Facilities, Staff, Value).
+        """
+        dynamic_types = ["cleanliness", "comfort", "facilities", "staff", "money"]
+        
+        if not rating_filter or rating_filter.get("type") not in dynamic_types:
+            return ""
+
+        r_type = rating_filter.get("type")
+        op = rating_filter.get("operator")
+        val = rating_filter.get("value")
+        min_val = rating_filter.get("min")
+        max_val = rating_filter.get("max")
+        
+        # Map to the calculated variable names in Cypher
+        field_map = {
+            "cleanliness": "avg_cleanliness",
+            "comfort": "avg_comfort",
+            "facilities": "avg_facilities",
+            "staff": "avg_staff",
+            "money": "avg_money"
+        }
+        variable = field_map.get(r_type)
+
+        clause = ""
+        if op == "gte" and val is not None:
+            clause = f"AND {variable} >= $post_min"
+            params["post_min"] = float(val)
+        elif op == "lte" and val is not None:
+            clause = f"AND {variable} <= $post_max"
+            params["post_max"] = float(val)
+        elif op == "between":
+            clause = f"AND {variable} >= $post_min AND {variable} <= $post_max"
+            params["post_min"] = float(min_val)
+            params["post_max"] = float(max_val)
+            
+        return clause
+    
+    def _search_hotels_generic(self, embedding: List[float], cities: List[str] = None, countries: List[str] = None, top_k: int = 25, rating_filter: dict = None):
         params = {
             "index_name": self.index_name,
             "embedding": embedding,
-            "top_k": top_k
+            "top_k": top_k,
+            # Fetch more candidates initially to allow for post-filtering
+            "fetch_k": top_k * 5 
         }
 
-        # 1. Build Location Filter
-        location_match = "MATCH (c:City)" # Default global
-        
+        # 1. Location Clause
+        location_match = "MATCH (c:City)"
         if cities:
-            location_match = """
-            MATCH (c:City)
-            WHERE toLower(c.name) IN $cities
-            """
+            location_match = "MATCH (c:City) WHERE toLower(c.name) IN $cities"
             params["cities"] = [c.lower() for c in cities]
         elif countries:
             location_match = """
-            MATCH (co:Country)
-            WHERE toLower(co.name) IN $countries
+            MATCH (co:Country) WHERE toLower(co.name) IN $countries
             MATCH (c:City)-[:LOCATED_IN]->(co)
             """
             params["countries"] = [c.lower() for c in countries]
 
-        # 2. Build Rating Filter
-        rating_clause = self._build_rating_clause(rating_filter, params)
+        # 2. Build Filters
+        # Pre-filter: Node properties (Stars)
+        pre_filter = self._build_pre_filter(rating_filter, params)
+        # Post-filter: Calculated averages (Cleanliness, etc.)
+        post_filter = self._build_post_filter(rating_filter, params)
 
-        # 3. Full Cypher Query
+        # 3. Cypher Query
         cypher = f"""
         {location_match}
         MATCH (h:Hotel)-[:LOCATED_IN]->(c)
         WHERE h.{self.property_name} IS NOT NULL
-        {rating_clause}
+        {pre_filter}
 
         WITH collect(h) AS hotels
 
-        CALL db.index.vector.queryNodes('{self.index_name}', $top_k, $embedding)
+        CALL db.index.vector.queryNodes('{self.index_name}', $fetch_k, $embedding)
         YIELD node, score
         WHERE node IN hotels
 
         MATCH (node)-[:LOCATED_IN]->(c_res:City)-[:LOCATED_IN]->(co_res:Country)
         OPTIONAL MATCH (node)<-[:REVIEWED]-(r:Review)
 
-        WITH node, score, c_res, co_res, collect(r.text)[0..3] AS review_texts
+        WITH node, score, c_res, co_res, 
+             collect(r.text)[0..3] AS review_texts,
+             avg(r.score_cleanliness) AS avg_cleanliness,
+             avg(r.score_comfort) AS avg_comfort,
+             avg(r.score_facilities) AS avg_facilities,
+             avg(r.score_staff) AS avg_staff,
+             avg(r.score_value_for_money) AS avg_money
         
+        WHERE true {post_filter}
+
         RETURN 
-            node AS h, 
+            node {{
+                .*, 
+                avg_score_cleanliness: avg_cleanliness,
+                avg_score_comfort: avg_comfort,
+                avg_score_facilities: avg_facilities,
+                avg_score_staff: avg_staff,
+                avg_score_value_for_money: avg_money
+            }} AS h, 
             c_res.name AS city_name, 
             co_res.name AS country_name, 
             review_texts, 
             score
         ORDER BY score DESC
+        LIMIT $top_k
         """
 
         results = self.db.run_query(cypher, params)
 
-        # --- 4. Post-Processing: Remove Vector Embeddings ---
+        # 4. Clean Results
         cleaned_results = []
         for row in results:
             if 'h' in row:
-                # Convert Neo4j Node to a mutable dictionary
                 hotel_props = dict(row['h'])
-                
-                # Remove the heavy embedding vectors
                 hotel_props.pop('embedding_minilm', None)
                 hotel_props.pop('embedding_bge', None)
-                
-                # Update the row with the cleaned dictionary
                 row['h'] = hotel_props
-            
             cleaned_results.append(row)
 
         return cleaned_results
-
+ 
     def get_visa_free_countries(self, origin_country: str) -> List[str]:
         """
         Finds 'Visa Free' countries by looking for the ABSENCE of a 

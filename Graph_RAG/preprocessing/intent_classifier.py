@@ -7,7 +7,6 @@ INTENT_KEYWORDS = {
     "visa_query": ["visa", "visa requirements", "visa info", "passport", "entry", "immigration", "do i need a visa"],
     "review_query": ["review", "reviews", "rating", "ratings", "score", "scores", "feedback"],
     "hotel_search": ["hotel", "hotels", "stay", "staying", "accommodation", "find hotels", "find a hotel"],
-    "generic_qa": ["what", "how", "when", "where", "who", "why"]
 }
 
 INTENT_WEIGHTS = {
@@ -16,11 +15,10 @@ INTENT_WEIGHTS = {
     "visa_query": 1.5,
     "review_query": 1.2,
     "hotel_search": 1.0,
-    "generic_qa": 0.5
 }
 
 # Only used if a true tie remains after confidence checks:
-INTENT_PRIORITY = ["booking", "recommendation", "visa_query", "review_query", "hotel_search", "generic_qa"]
+INTENT_PRIORITY = ["booking", "recommendation", "visa_query", "review_query", "hotel_search"]
 
 # High-confidence multi-token phrases (dominance overrides)
 DOMINANCE_PHRASES = {

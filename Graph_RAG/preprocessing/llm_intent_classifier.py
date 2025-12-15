@@ -7,7 +7,6 @@ INTENT_LABELS = [
     "visa_query",
     "review_query",
     "hotel_search",
-    "generic_qa",
     "hotel_visa"
 ]
 
@@ -29,7 +28,6 @@ Given a user query, classify it into EXACTLY ONE of these intent labels:
 - **hotel_search**: User wants to find/locate hotels based on location, price, amenities, or general "best" queries (e.g., "Find me a hotel", "Best hotels in London").
 - **booking**: User wants to reserve or book.
 - **review_query**: User asks for reviews or ratings.
-- **generic_qa**: General chatter.
 
 ### 3. EXAMPLES (Use these to guide your decision):
 User: "Recommend a hotel for **families** in London"
@@ -59,7 +57,7 @@ def classify_intent_llm_hf(text: str) -> str:
     api_key = os.getenv("HF_API_KEY")
     if not api_key:
         print("HF_API_KEY is missing")
-        return "generic_qa"
+        return "hotel_search"
 
     client = InferenceClient(
         model="deepseek-ai/DeepSeek-V3.2", # or "meta-llama/Llama-3.1-8B-Instruct" if available
@@ -91,8 +89,8 @@ def classify_intent_llm_hf(text: str) -> str:
             if label in label_clean:
                 return label
 
-        return "generic_qa"
+        return "hotel_search"
 
     except Exception as e:
         print("Intent Classification Error:", e)
-        return "generic_qa"
+        return "hotel_search"
