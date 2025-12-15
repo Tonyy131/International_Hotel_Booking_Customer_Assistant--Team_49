@@ -44,6 +44,13 @@ st.markdown(
             animation: gradientShift 28s ease-in-out infinite;
         }
 
+        /* Base responsive typography */
+        html, body { font-size: 16px; }
+        @media (max-width: 1200px) { html, body { font-size: 15px; } }
+        @media (max-width: 992px)  { html, body { font-size: 14px; } }
+        @media (max-width: 768px)  { html, body { font-size: 13px; } }
+        @media (max-width: 576px)  { html, body { font-size: 12px; } }
+
         /* Soft floating color blobs overlay */
         .stApp::before, .stApp::after {
             content: "";
@@ -79,6 +86,30 @@ st.markdown(
             border-right: 1px solid var(--sb-border);
             box-shadow: 8px 0 24px rgba(0,0,0,0.25);
             color: var(--text);
+            height: 100vh;
+            overflow-y: auto;
+            overscroll-behavior-y: contain;
+            scrollbar-width: thin;
+        }
+        /* Responsive sidebar width adjustments */
+        [data-testid="stSidebar"] { width: 22rem; }
+        @media (max-width: 1200px) { [data-testid="stSidebar"] { width: 20rem; } }
+        @media (max-width: 992px)  { [data-testid="stSidebar"] { width: 18rem; } }
+        @media (max-width: 768px)  { [data-testid="stSidebar"] { width: 16rem; } }
+        @media (max-width: 576px)  { [data-testid="stSidebar"] { width: 14rem; } }
+
+        /* WebKit scrollbar styling for sidebar */
+        [data-testid="stSidebar"] > div::-webkit-scrollbar {
+            width: 10px;
+        }
+        [data-testid="stSidebar"] > div::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+        }
+        [data-testid="stSidebar"] > div::-webkit-scrollbar-thumb {
+            background: rgba(52,179,255,0.35);
+            border-radius: 8px;
+            border: 2px solid rgba(0,0,0,0.2);
+        }
         }
         [data-testid="stSidebar"] h1,
         [data-testid="stSidebar"] h2,
@@ -142,6 +173,17 @@ st.markdown(
             50%  { transform: translate(-3%, 1%) scale(1.07) rotate(-8deg); }
             100% { transform: translate(2%, -1%) scale(1.00) rotate(0deg); }
         }
+
+        /* Responsive content containers */
+        .block-container { padding: 1.5rem 2rem 2.5rem; }
+        @media (max-width: 992px)  { .block-container { padding: 1.25rem 1.5rem 2rem; } }
+        @media (max-width: 768px)  { .block-container { padding: 1rem 1rem 1.5rem; } }
+        @media (max-width: 576px)  { .block-container { padding: 0.75rem 0.75rem 1rem; } }
+
+        /* Make Plotly charts responsive */
+        .js-plotly-plot, .plotly { width: 100% !important; }
+        .stPlotlyChart { width: 100% !important; }
+        @media (max-width: 576px) { .stPlotlyChart { min-height: 240px; } }
         </style>
         """,
         unsafe_allow_html=True,
