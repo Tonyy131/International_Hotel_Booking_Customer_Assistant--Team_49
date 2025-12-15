@@ -245,10 +245,16 @@ with st.sidebar:
             with row[1]:
                 if st.button("x", key=f"del_{s['id']}"):
                     try:
+                        was_current = st.session_state.get("current_session_id") == s['id']
                         if NO_LOCAL_SAVE:
                             st.session_state.archived_sessions = [a for a in st.session_state.get("archived_sessions", []) if a.get("id") != s['id']]
                         else:
                             os.remove(os.path.join(CHAT_DIR, f"{s['id']}.json"))
+                        if was_current:
+                            st.session_state.current_session_id = f"chat-{int(time.time())}"
+                            st.session_state.session_created_at = datetime.utcnow().isoformat()
+                            st.session_state.session_title = "New Chat"
+                            st.session_state.messages = []
                     except Exception as e:
                         st.error(f"Failed to delete: {e}")
                     st.rerun()
@@ -346,7 +352,7 @@ def visualize_subgraph(combined_results: Dict):
                  h_node.get("star_rating"))
                  
         if score and isinstance(score, (int, float)) and float(score) > 8.0:
-            rating_label = f"⭐ {float(score):.1f}"
+            rating_label = f"Rating {float(score):.1f}"
             r_id = f"Rate_{node_key}"
             
             G.add_node(r_id, label=rating_label, color='#FFE66D', size=10, type='Rating') 
@@ -427,10 +433,10 @@ for i, msg in enumerate(st.session_state.messages):
         
         # Requirement: View KG-retrieved context, Cypher queries, & Visualization
         if "data" in msg:
-            with st.expander(f"🔍 View Graph Reasoning (Found {len(msg['data'].get('combined',{}).get('hotels',[]))} nodes)"):
+            with st.expander(f"View Graph Reasoning (Found {len(msg['data'].get('combined',{}).get('hotels',[]))} nodes"):
                 
                 # Tabbed view for cleaner UX
-                tab1, tab2, tab3 = st.tabs(["📄 KG Context", "🕸️ Graph Visualization", "⚡ Cypher Query"])
+                tab1, tab2, tab3 = st.tabs(["KG Context", "Graph Visualization", "Cypher Query"])
                 
                 with tab1:
                     st.markdown("**Raw Retrieval Context:**")
@@ -475,7 +481,7 @@ if prompt := st.chat_input("Ex: Find high-rated hotels in Cairo"):
 
         # 2. Process with Assistant
         with st.chat_message("assistant"):
-            status_box = st.status("🔍 Processing...", expanded=True)
+            status_box = st.status("Processing...", expanded=True)
             
             try:
                 start_time = time.perf_counter()
@@ -510,11 +516,11 @@ if prompt := st.chat_input("Ex: Find high-rated hotels in Cairo"):
                 latency = out["generation"].get("latency_s", 0)
                 
                 total_time = time.perf_counter() - start_time
-                status_box.update(label="✅ Complete", state="complete", expanded=False)
+                status_box.update(label="Complete", state="complete", expanded=False)
                 
                 # Display Result
                 st.markdown(response_text)
-                st.caption(f"⏱️ Total: {total_time:.2f}s | LLM: {latency:.2f}s | Nodes Retrieved: {len(retrieval_result.get('combined',{}).get('hotels',[]))}")
+                st.caption(f"Total: {total_time:.2f}s | LLM: {latency:.2f}s | Nodes Retrieved: {len(retrieval_result.get('combined',{}).get('hotels',[]))}")
 
                 # 3. Append Assistant Message (with data for visualization)
                 st.session_state.messages.append({
@@ -542,5 +548,5 @@ if prompt := st.chat_input("Ex: Find high-rated hotels in Cairo"):
                 st.rerun()
 
             except Exception as e:
-                status_box.update(label="❌ Error", state="error")
+                status_box.update(label="Error", state="error")
                 st.error(f"An error occurred: {str(e)}")
