@@ -602,7 +602,7 @@ for i, msg in enumerate(st.session_state.messages):
         
         # Requirement: View KG-retrieved context, Cypher queries, & Visualization
         if "data" in msg:
-            with st.expander(f"View Graph Reasoning (Found {len(msg['data'].get('combined',{}).get('hotels',[]))} nodes"):
+            with st.expander(f"View Graph Reasoning (Found {len(msg['data'].get('combined',{}).get('hotels',[]))} nodes)"):
                 
                 # Tabbed view for cleaner UX
                 tab1, tab2, tab3 = st.tabs(["KG Context", "Graph Visualization", "Cypher Query"])
@@ -661,7 +661,6 @@ if prompt := st.chat_input("Ask TAJR"):
                 # Calling the cached pipeline - safe_retrieve handles errors gracefully
                 retrieval_result = pipeline.safe_retrieve(
                     query=prompt,
-                    limit=5,
                     user_embeddings=use_embeddings,
                     user_baseline=use_baseline,
                     use_llm=True

@@ -257,6 +257,9 @@ class BaselineRetriever:
                 if op == "eq" and (rf.get("value") is not None and rf.get("value") != 0):
                     params = {"value": rf["value"], "cities": cities, "countries": countries, "limit": limit}
                     return _exec_and_extract("hotel_search_exact_cleanliness", params)
+                if op is None :
+                    params = {"cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("top_hotel_cleanliness", params)
             elif rf and rf.get("type") == "comfort":
                 op = rf.get("operator")
                 if op == "gte" and (rf.get("value") is not None and rf.get("value") != 0):
@@ -274,6 +277,9 @@ class BaselineRetriever:
                 if op == "eq" and (rf.get("value") is not None and rf.get("value") != 0):
                     params = {"value": rf["value"], "cities": cities, "countries": countries, "limit": limit}
                     return _exec_and_extract("hotel_search_exact_comfort", params)
+                if op is None :
+                    params = {"cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("top_hotel_comfort", params)
             elif rf and rf.get("type") == "facilities":
                 op = rf.get("operator")
                 if op == "gte" and (rf.get("value") is not None and rf.get("value") != 0):
@@ -291,6 +297,9 @@ class BaselineRetriever:
                 if op == "eq" and (rf.get("value") is not None and rf.get("value") != 0):
                     params = {"value": rf["value"], "cities": cities, "countries": countries, "limit": limit}
                     return _exec_and_extract("hotel_search_exact_facilities", params)
+                if op is None :
+                    params = {"cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("top_hotel_facilities", params)
             elif rf and rf.get("type") == "staff":
                 op = rf.get("operator")
                 if op == "gte" and (rf.get("value") is not None and rf.get("value") != 0):
@@ -308,6 +317,9 @@ class BaselineRetriever:
                 if op == "eq" and (rf.get("value") is not None and rf.get("value") != 0):
                     params = {"value": rf["value"], "cities": cities, "countries": countries, "limit": limit}
                     return _exec_and_extract("hotel_search_exact_staff", params)
+                if op is None:
+                    params = {"cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("top_hotel_staff", params)
             elif rf and rf.get("type") == "money":
                 op = rf.get("operator")
                 if op == "gte" and (rf.get("value") is not None and rf.get("value") != 0):
@@ -325,6 +337,9 @@ class BaselineRetriever:
                 if op == "eq" and (rf.get("value") is not None and rf.get("value") != 0):
                     params = {"value": rf["value"], "cities": cities, "countries": countries, "limit": limit}
                     return _exec_and_extract("hotel_search_exact_value_for_money", params)
+                if op is None :
+                    params = {"cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("top_hotel_value_for_money", params)
             elif rf and rf.get("type") != "none":
                 op = rf.get("operator")
                 if op == "gte" and (rf.get("value") is not None and rf.get("value") != 0):
@@ -342,6 +357,9 @@ class BaselineRetriever:
                 if op == "eq" and (rf.get("value") is not None and rf.get("value") != 0):
                     params = {"value": rf["value"], "cities": cities, "countries": countries, "limit": limit}
                     return _exec_and_extract("hotel_search_exact_rating", params)
+                if op is None :
+                    params = {"cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("top_hotels", params)
 
             # Combined city + country search
             if e.get("cities") or e.get("countries"):
