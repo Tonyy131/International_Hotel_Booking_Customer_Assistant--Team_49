@@ -184,6 +184,47 @@ st.markdown(
         .js-plotly-plot, .plotly { width: 100% !important; }
         .stPlotlyChart { width: 100% !important; }
         @media (max-width: 576px) { .stPlotlyChart { min-height: 240px; } }
+
+        /* Custom styling for recommended query buttons */
+        .query-button-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .query-button-container button {
+            width: 100% !important;
+            min-height: 80px !important;
+            white-space: normal !important;
+            text-align: left !important;
+            padding: 1rem !important;
+            background: linear-gradient(135deg, rgba(52,179,255,0.12), rgba(52,179,255,0.06)) !important;
+            border: 1.5px solid rgba(52,179,255,0.4) !important;
+            border-radius: 12px !important;
+            color: var(--text) !important;
+            font-size: 0.95rem !important;
+            line-height: 1.4 !important;
+            transition: all 0.2s ease-in-out !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+        }
+        
+        .query-button-container button:hover {
+            background: linear-gradient(135deg, rgba(52,179,255,0.20), rgba(52,179,255,0.12)) !important;
+            border-color: rgba(52,179,255,0.7) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 16px rgba(52,179,255,0.3) !important;
+        }
+        
+        @media (max-width: 768px) {
+            .query-button-container {
+                grid-template-columns: 1fr;
+            }
+            .query-button-container button {
+                min-height: 70px !important;
+                font-size: 0.9rem !important;
+            }
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -600,7 +641,7 @@ st.markdown(f"Ask about hotels, visas, or reviews.  Retrieval: {retrieval_method
 
 # --- Quick Query Suggestions (click to auto-submit) ---
 with st.container():
-    st.caption("Recommended Queries:")
+    st.markdown("### Recommended Queries")
     quick_queries = [
         "give me the best hotels to go to a business trip",
         "what are the best hotels to go to without needing visa if i live in egypt",
@@ -610,11 +651,18 @@ with st.container():
         "what is the average review score for nile grandore hotel",
     ]
 
+    # Create a custom HTML container for the grid layout
+    st.markdown('<div class="query-button-container">', unsafe_allow_html=True)
+    
+    # Create buttons in a 3-column grid
     cols = st.columns(3)
     for i, q in enumerate(quick_queries):
-        if cols[i % 3].button(q, key=f"qq_{i}"):
-            st.session_state["pending_prompt"] = q
-            st.rerun()
+        with cols[i % 3]:
+            if st.button(q, key=f"qq_{i}", use_container_width=True):
+                st.session_state["pending_prompt"] = q
+                st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Render Chat History
 for i, msg in enumerate(st.session_state.messages):
