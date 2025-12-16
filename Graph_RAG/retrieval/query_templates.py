@@ -13,7 +13,7 @@ QUERY_TEMPLATES = {
         WHERE c.name IN $cities
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name } AS hotel
         ORDER BY c.name, h.average_reviews_score DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # Search hotels by country
@@ -22,7 +22,7 @@ QUERY_TEMPLATES = {
         WHERE co.name IN $countries
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, country: co.name } AS hotel        
         ORDER BY h.average_reviews_score DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # Search hotels with minimum average rating
@@ -33,7 +33,7 @@ QUERY_TEMPLATES = {
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name , country: co.name } AS hotel
         ORDER BY h.average_reviews_score DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
     # Search hotels with minimum star rating
     "hotel_search_min_stars": """
@@ -43,7 +43,7 @@ QUERY_TEMPLATES = {
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name, country: co.name } AS hotel
         ORDER BY h.star_rating DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # Search hotels with minimum average score
@@ -52,7 +52,7 @@ QUERY_TEMPLATES = {
         WHERE h.average_reviews_score >= $min_score
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score } AS hotel
         ORDER BY h.average_reviews_score DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # Get reviews for a specific hotel (by exact name or id)
@@ -94,7 +94,7 @@ QUERY_TEMPLATES = {
         MATCH (r:Review)-[:REVIEWED]->(h:Hotel {hotel_id: $hotel_id})
         RETURN r.review_id AS review_id, r.text AS text, r.score_overall AS score, r.date AS date
         ORDER BY r.date DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # Recommend hotels based on traveller type (simple co-occurrence)
@@ -104,7 +104,7 @@ QUERY_TEMPLATES = {
         ORDER BY freq DESC, avgScore DESC
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, average_reviews_score: avgScore } AS hotel,
             freq
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
 
@@ -148,7 +148,7 @@ QUERY_TEMPLATES = {
         WHERE toLower(h.name) CONTAINS toLower($q)
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, average_reviews_score: h.average_reviews_score } AS hotel
         ORDER BY h.average_reviews_score DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # Top N hotels overall
@@ -156,7 +156,7 @@ QUERY_TEMPLATES = {
         MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(co:Country)
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, city: c.name, country: co.name, average_reviews_score: h.average_reviews_score } AS hotel
         ORDER BY h.average_reviews_score DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # Hotel details by id
@@ -172,7 +172,7 @@ QUERY_TEMPLATES = {
         WHERE h.average_reviews_score IS NOT NULL
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score } AS hotel
         ORDER BY h.average_reviews_score DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # Search hotels by city or country
@@ -182,7 +182,7 @@ QUERY_TEMPLATES = {
         OR co.name IN $countries
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, city: c.name, country: co.name, average_reviews_score: h.average_reviews_score } AS hotel
         ORDER BY h.average_reviews_score DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # rating range (min AND max)
@@ -193,7 +193,7 @@ QUERY_TEMPLATES = {
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name } AS hotel
         ORDER BY h.average_reviews_score DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
         
     "hotel_search_stars_range": """
@@ -203,7 +203,7 @@ QUERY_TEMPLATES = {
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name } AS hotel
         ORDER BY h.star_rating DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
 
@@ -215,7 +215,7 @@ QUERY_TEMPLATES = {
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name } AS hotel
         ORDER BY h.average_reviews_score DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
     # star rating less-or-equal (upper bound)
     "hotel_search_max_stars": """
@@ -225,7 +225,7 @@ QUERY_TEMPLATES = {
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name } AS hotel
         ORDER BY h.star_rating DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
 
@@ -235,7 +235,7 @@ QUERY_TEMPLATES = {
         WHERE floor(h.average_reviews_score * 10) / 10 = $value AND ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities) AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score } AS hotel
         ORDER BY h.average_reviews_score DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
     # exact star rating
     "hotel_search_exact_stars": """
@@ -245,7 +245,7 @@ QUERY_TEMPLATES = {
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating, average_reviews_score: h.average_reviews_score, city: c.name ,country: co.name} AS hotel
         ORDER BY h.star_rating DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
         # Search hotels with minimum average cleanliness score (ratings are on Rating nodes)
     "hotel_search_min_cleanliness": """
@@ -258,7 +258,7 @@ QUERY_TEMPLATES = {
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
                    average_reviews_score: h.average_reviews_score, avg_score_cleanliness: avg_cleanliness, city: c.name , country: co.name} AS hotel
         ORDER BY avg_cleanliness DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # Search hotels with maximum average cleanliness score (upper bound)
@@ -272,7 +272,7 @@ QUERY_TEMPLATES = {
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
                    average_reviews_score: h.average_reviews_score, avg_score_cleanliness: avg_cleanliness, city: c.name ,country: co.name} AS hotel
         ORDER BY avg_cleanliness DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # Search hotels with cleanliness avg in a range
@@ -286,7 +286,7 @@ QUERY_TEMPLATES = {
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
                    average_reviews_score: h.average_reviews_score, avg_score_cleanliness: avg_cleanliness, city: c.name ,country: co.name} AS hotel
         ORDER BY avg_cleanliness DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # Search hotels with exact average cleanliness value
@@ -300,7 +300,7 @@ QUERY_TEMPLATES = {
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
                    average_reviews_score: h.average_reviews_score, avg_score_cleanliness: avg_cleanliness, city: c.name,country: co.name } AS hotel
         ORDER BY avg_cleanliness DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # hotels with highest cleanliness ratings
@@ -323,7 +323,7 @@ QUERY_TEMPLATES = {
             country: co.name
         } AS hotel
         ORDER BY avg_cleanliness DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # hotels with lowest cleanliness ratings
@@ -345,7 +345,7 @@ QUERY_TEMPLATES = {
             country: co.name
         } AS hotel
         ORDER BY avg_cleanliness ASC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # hotels with lowest ratings
@@ -355,7 +355,7 @@ QUERY_TEMPLATES = {
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, average_reviews_score: h.average_reviews_score } AS hotel
         ORDER BY h.average_reviews_score ASC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
         # Search hotels with minimum average comfort score
@@ -369,7 +369,7 @@ QUERY_TEMPLATES = {
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
                    average_reviews_score: h.average_reviews_score, avg_score_comfort: avg_comfort, city: c.name, country: co.name } AS hotel
         ORDER BY avg_comfort DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # upper bound comfort
@@ -383,7 +383,7 @@ QUERY_TEMPLATES = {
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
                    average_reviews_score: h.average_reviews_score, avg_score_comfort: avg_comfort, city: c.name,country: co.name } AS hotel
         ORDER BY avg_comfort DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # comfort range
@@ -397,7 +397,7 @@ QUERY_TEMPLATES = {
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
                    average_reviews_score: h.average_reviews_score, avg_score_comfort: avg_comfort, city: c.name,country: co.name } AS hotel
         ORDER BY avg_comfort DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # exact comfort match
@@ -411,7 +411,7 @@ QUERY_TEMPLATES = {
         RETURN h { .*, hotel_id: h.hotel_id, name: h.name, star_rating: h.star_rating,
                    average_reviews_score: h.average_reviews_score, avg_score_comfort: avg_comfort, city: c.name,country: co.name } AS hotel
         ORDER BY avg_comfort DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
     # hotels with highest comfort ratings
     "top_hotel_comfort": """
@@ -432,7 +432,7 @@ QUERY_TEMPLATES = {
             country: co.name
         } AS hotel
         ORDER BY avg_comfort DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
     # hotels with lowest comfort ratings
     "worst_hotel_comfort": """
@@ -453,7 +453,7 @@ QUERY_TEMPLATES = {
             country: co.name
         } AS hotel
         ORDER BY avg_comfort ASC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
 
@@ -478,7 +478,7 @@ QUERY_TEMPLATES = {
             visa_status: "Visa Free" 
         } AS hotel
         ORDER BY h.average_reviews_score DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
     # Search hotels with minimum average facilities score
     "hotel_search_min_facilities": """
@@ -499,7 +499,7 @@ QUERY_TEMPLATES = {
             country: co.name
         } AS hotel
         ORDER BY avg_facilities DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # Search hotels with maximum average facilities score
@@ -521,7 +521,7 @@ QUERY_TEMPLATES = {
             country: co.name
         } AS hotel
         ORDER BY avg_facilities DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # Search hotels with facilities avg in a range
@@ -543,7 +543,7 @@ QUERY_TEMPLATES = {
             country: co.name
         } AS hotel
         ORDER BY avg_facilities DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # Search hotels with exact average facilities value
@@ -565,7 +565,7 @@ QUERY_TEMPLATES = {
             country: co.name
         } AS hotel
         ORDER BY avg_facilities DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # Hotels with highest facilities ratings
@@ -587,7 +587,7 @@ QUERY_TEMPLATES = {
             country: co.name
         } AS hotel
         ORDER BY avg_facilities DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
 
     # Hotels with lowest facilities ratings
@@ -609,7 +609,7 @@ QUERY_TEMPLATES = {
             country: co.name
         } AS hotel
         ORDER BY avg_facilities ASC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
     # Search hotels with minimum average staff score
     "hotel_search_min_staff": """
@@ -630,7 +630,7 @@ QUERY_TEMPLATES = {
             country: co.name
         } AS hotel
         ORDER BY avg_staff DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
     # Search hotels with maximum average staff score
     "hotel_search_max_staff": """
@@ -651,7 +651,7 @@ QUERY_TEMPLATES = {
             country: co.name
         } AS hotel
         ORDER BY avg_staff DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
     # Search hotels with staff avg in a range
     "hotel_search_staff_range": """
@@ -672,7 +672,7 @@ QUERY_TEMPLATES = {
             country: co.name
         } AS hotel
         ORDER BY avg_staff DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
     # Search hotels with exact average staff value
     "hotel_search_exact_staff": """
@@ -693,7 +693,7 @@ QUERY_TEMPLATES = {
             country: co.name
         } AS hotel
         ORDER BY avg_staff DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
     # Hotels with highest staff ratings
     "top_hotel_staff": """
@@ -714,7 +714,7 @@ QUERY_TEMPLATES = {
             country: co.name
         } AS hotel
         ORDER BY avg_staff DESC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
     # Hotels with lowest staff ratings
     "worst_hotel_staff": """
@@ -735,7 +735,7 @@ QUERY_TEMPLATES = {
             country: co.name
         } AS hotel
         ORDER BY avg_staff ASC
-        LIMIT $limit
+        LIMIT toInteger(coalesce($limit, 10))
     """,
     # Search hotels with minimum average value for money score
     "hotel_search_min_value_for_money": """
@@ -756,7 +756,7 @@ QUERY_TEMPLATES = {
         country: co.name
     } AS hotel
     ORDER BY avg_value DESC
-    LIMIT $limit
+    LIMIT toInteger(coalesce($limit, 10))
     """,
     # Search hotels with maximum average value for money score
     "hotel_search_max_value_for_money": """
@@ -777,7 +777,7 @@ QUERY_TEMPLATES = {
         country: co.name
     } AS hotel
     ORDER BY avg_value DESC
-    LIMIT $limit
+    LIMIT toInteger(coalesce($limit, 10))
     """,
     # Search hotels with value for money avg in a range
     "hotel_search_value_for_money_range": """
@@ -798,7 +798,7 @@ QUERY_TEMPLATES = {
         country: co.name
     } AS hotel
     ORDER BY avg_value DESC
-    LIMIT $limit
+    LIMIT toInteger(coalesce($limit, 10))
     """,
     # Search hotels with exact average value for money value
     "hotel_search_exact_value_for_money": """
@@ -819,7 +819,7 @@ QUERY_TEMPLATES = {
         country: co.name
     } AS hotel
     ORDER BY avg_value DESC
-    LIMIT $limit
+    LIMIT toInteger(coalesce($limit, 10))
     """,
     # Hotels with highest value for money ratings
     "top_hotel_value_for_money": """
@@ -840,7 +840,7 @@ QUERY_TEMPLATES = {
         country: co.name
     } AS hotel
     ORDER BY avg_value DESC
-    LIMIT $limit
+    LIMIT toInteger(coalesce($limit, 10))
     """,
     # Hotels with lowest value for money ratings
     "worst_hotel_value_for_money": """
@@ -861,7 +861,7 @@ QUERY_TEMPLATES = {
         country: co.name
     } AS hotel
     ORDER BY avg_value ASC
-    LIMIT $limit
+    LIMIT toInteger(coalesce($limit, 10))
     """,
 
 }
