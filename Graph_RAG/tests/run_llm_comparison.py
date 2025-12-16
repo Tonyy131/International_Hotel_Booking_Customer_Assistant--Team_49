@@ -27,7 +27,6 @@ from llm.llm_answerer import answer_with_model
 
 # MODEL LIST
 MODEL_CANDIDATES = [
-    "Qwen/Qwen2.5-1.5B-Instruct",
     "meta-llama/Llama-3.1-8B-Instruct", 
     "mistralai/Mistral-7B-Instruct-v0.2",
     "deepseek-ai/DeepSeek-V3.2",
@@ -38,12 +37,12 @@ JUDGE_MODEL = "meta-llama/Llama-3.1-8B-Instruct"
 
 # TEST QUERIES
 TEST_QUERIES = [
-    "I am planning a trip and I’m looking for hotels located in Cairo that have an average review rating higher than 8 out of 10.",
-    "We are traveling as a family and would appreciate it if you could recommend three family-friendly hotels located in Berlin.",
-    "Which hotels located in Tokyo are known for having excellent cleanliness scores based on guest reviews?",
-    "I am an Egyptian traveler and I would like to know whether I need to obtain a visa before traveling from Egypt to Germany.",
-    "I am searching for boutique-style hotels located in Paris and would like to see what options are available.",
-    "What are the best-rated hotels that are considered most suitable for business travelers based on previous guest reviews?",
+    # "Find me hotels in Cairo above 8.",
+    # "Recommend 3 family-friendly hotels in Berlin.",
+    # "Which hotels in Tokyo have excellent cleanliness?",
+    # "Is a visa needed to travel from Egypt to Germany?",
+    # "Find boutique hotels in Paris.",
+    "What are the best hotels for business travellers?",
 ]
 
 
@@ -164,7 +163,7 @@ def run_experiment(models, queries, top_k=5):
             question=query,
             context=context_text,
             answer=text
-        )
+            )
 
 
             end = time.perf_counter()
