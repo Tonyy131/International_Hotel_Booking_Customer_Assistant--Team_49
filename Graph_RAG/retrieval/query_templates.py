@@ -117,12 +117,16 @@ QUERY_TEMPLATES = {
     """,
     # Visa requirements by origin country
         "visa_requirements_by_origin": """
-            MATCH (from:Country {name: $from})-[v:NEEDS_VISA]->(to:Country)
-            RETURN 
+            MATCH (from:Country {name: $from})
+            MATCH (to:Country)
+            WHERE from <> to
+            OPTIONAL MATCH (from)-[v:NEEDS_VISA]->(to)
+            RETURN
                 from.name AS origin_country,
                 to.name AS destination_country,
-                v.visa_type AS visa_type
+                COALESCE(v.visa_type, 'Visa Free') AS visa_type
             ORDER BY destination_country
+
         """,
     # Countries that do NOT require a visa from the origin
         "visa_free_countries_by_origin": """
@@ -462,13 +466,14 @@ QUERY_TEMPLATES = {
         WHERE dest <> origin
         AND NOT (origin)-[:NEEDS_VISA]->(dest)
         
-        MATCH (h:Hotel)-[:LOCATED_IN]->(:City)-[:LOCATED_IN]->(dest)
+        MATCH (h:Hotel)-[:LOCATED_IN]->(c:City)-[:LOCATED_IN]->(dest)
         
         RETURN h { 
             .*, 
             hotel_id: h.hotel_id, 
             name: h.name, 
             average_reviews_score: h.average_reviews_score,
+            city: c.name,
             country: dest.name,
             visa_status: "Visa Free" 
         } AS hotel

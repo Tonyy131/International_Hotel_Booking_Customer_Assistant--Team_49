@@ -142,6 +142,8 @@ class RetrievalPipeline:
                 avg_score = (hotel_node.get("average_reviews_score") or 
                              hotel_node.get("total_avg_score"))
                 
+                visa_status = (hotel_node.get("visa_status"))
+                
                 line = f"• {name} (Located in {city}, {country})"
 
                 if star_rating:
@@ -150,6 +152,9 @@ class RetrievalPipeline:
 
                 if avg_score:
                     line += f" | Global Rating: {float(avg_score):.1f}/10"
+
+                if visa_status:
+                    line += f" | Visa Status: {visa_status}"
 
                 cat_scores = []
                 categories = [

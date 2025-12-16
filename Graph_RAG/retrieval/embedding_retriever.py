@@ -429,12 +429,16 @@ class EmbeddingRetriever:
 
         # We use toLower() for case-insensitive matching to be robust against user input variations
         cypher = """
-        MATCH (from:Country)-[v:NEEDS_VISA]->(to:Country)
-        WHERE toLower(from.name) = toLower($origin) 
-          AND toLower(to.name) = toLower($destination)
-        RETURN from.name AS origin_country, 
-               to.name AS destination_country, 
-               v.visa_type AS visa_type
+        MATCH (from:Country {name: 'Japan'})
+        MATCH (to:Country)
+        WHERE from <> to
+        OPTIONAL MATCH (from)-[v:NEEDS_VISA]->(to)
+        RETURN
+            from.name AS origin_country,
+            to.name AS destination_country,
+            COALESCE(v.visa_type, 'Visa Free') AS visa_type
+        ORDER BY destination_country
+
         """
 
         params = {
@@ -648,7 +652,6 @@ class EmbeddingRetriever:
         MATCH (dest:Country)
         WHERE dest <> origin 
         
-        # KEY LOGIC: Exclude any country that HAS a visa relationship
         AND NOT (origin)-[:NEEDS_VISA]->(dest)
         
         RETURN dest.name AS country
@@ -663,6 +666,23 @@ class EmbeddingRetriever:
             print(f"No visa-free countries found for {origin_country}. (Check if Country nodes exist?)")
         
         return found_countries
+    
+    def search_countries_visa(self, origin_country, embedding):
+        cypher = """
+        MATCH (from:Country {name: $from})
+        MATCH (to:Country)
+        WHERE from <> to
+        OPTIONAL MATCH (from)-[v:NEEDS_VISA]->(to)
+        RETURN
+            from.name AS origin_country,
+            to.name AS destination_country,
+            COALESCE(v.visa_type, 'Visa Free') AS visa_type
+        ORDER BY destination_country
+        """
+        
+        params = {"from": origin_country}
+        return self.db.run_query(cypher, params)
+        
 
     # MAIN ENTRY POINT
     def sem_search_hotels(self, query: str, entities, top_k: int = 10, rating_filter: dict = None, intent: str = "hotel_search"):
@@ -681,6 +701,8 @@ class EmbeddingRetriever:
             # The search_visa method likely needs both. If one is missing, return empty.
             if origin_country and destination_country:
                 return self.search_visa(origin_country, destination_country, embedding, top_k)
+            if origin_country:
+                return self.search_countries_visa(origin_country, embedding)
             else:
                 return []
         
@@ -688,6 +710,7 @@ class EmbeddingRetriever:
         cities = entities.get("cities", [])
         countries = entities.get("countries", [])
 
+        visa_info_to_add = []
         if intent == "hotel_visa":
             origin_country = entities.get("origin_country", [None])[0]
             
@@ -699,17 +722,26 @@ class EmbeddingRetriever:
                 if allowed_countries:
                     print(f"DEBUG: Found {len(allowed_countries)} visa-free destinations.")
                     countries = allowed_countries
+
+                    for dest in allowed_countries:
+                        visa_info_to_add.append({
+                            "origin_country": origin_country,
+                            "destination_country": dest.title(), # Formatting
+                            "visa_type": "Visa Free" # Explicit status
+                        })
                 else:
                     print("DEBUG: No visa-free countries found.")
                     return [] 
             else:
                 print("DEBUG: Intent is 'hotel_visa' but no 'origin_country' extracted.")
 
-        # The single generic method handles empty lists (Global), single items, or multiple items automatically.
-        return self._search_hotels_generic(
+
+        hotel_results = self._search_hotels_generic(
             embedding=embedding, 
             cities=cities, 
             countries=countries, 
             top_k=top_k, 
             rating_filter=rating_filter
         )
+        # The single generic method handles empty lists (Global), single items, or multiple items automatically.
+        return hotel_results + visa_info_to_add
