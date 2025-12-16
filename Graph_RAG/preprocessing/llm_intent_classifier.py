@@ -20,6 +20,7 @@ Given a user query, classify it into EXACTLY ONE of these intent labels:
 ### 1. INTENT HIERARCHY (Read this first):
 - **CRITICAL RULE**: If the query mentions "visa", "passport", or "entry requirements" AND "hotels" (or accommodation), the intent is ALWAYS **'hotel_visa'**. This overrides 'recommendation' and 'hotel_search'.
 - **CRITICAL RULE**: The label **'recommendation'** is RESERVED ONLY for specific **Traveller Types** (families, couples, business). If the user just says "recommend me a hotel in Cairo", that is **'hotel_search'**, NOT 'recommendation'.
+- **CRITICAL RULE**: If the user asks for the average review score or an average score of cleanliness, etc., it's always **'hotel_search'**.
 
 ### 2. DEFINITIONS:
 - **hotel_visa**: User wants to find hotels based on visa requirements (e.g., "where can I go without a visa?", "hotels in visa-free countries") OR checks visa rules for a specific stay.
