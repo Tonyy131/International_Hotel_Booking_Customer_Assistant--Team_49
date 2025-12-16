@@ -16,7 +16,7 @@ SCHEMA:
     "hotels": ["Hotel Name", ...],
     "origin_country": ["Country", ...],
     "destination_country": ["Country", ...],
-    "traveller_type": "solo|family|couple|business|group|null",
+    "traveller_type": "Solo|Family|Couple|Business|Group|null",
     "age_group": "18-24|25-34|35-44|45-54|55+|null",
     "gender": ["male","female"] or [],
     "rating": number or null,
@@ -37,7 +37,8 @@ SCHEMA:
         "value": number|null,
         "min": number|null,
         "max": number|null
-    }
+    },
+    "limit": integer
 }
 
 STRICT RULES:
@@ -75,6 +76,9 @@ STRICT RULES:
 
 8. The "countries" field must list ALL countries mentioned in the user query 
    or implied by cities.
+
+9. The limit is the number of results that should be returned by the search engine.
+   if the user doesn't specify a limit, default to 100.
 
 """
 

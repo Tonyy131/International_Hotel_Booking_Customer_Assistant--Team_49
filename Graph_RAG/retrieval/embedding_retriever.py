@@ -688,6 +688,7 @@ class EmbeddingRetriever:
     def sem_search_hotels(self, query: str, entities, top_k: int = 10, rating_filter: dict = None, intent: str = "hotel_search"):
     
         embedding = self.encoder.encode(query)
+        top_k = entities.get("limit")
 
         if intent == "visa_query":
             # Safely get the lists
