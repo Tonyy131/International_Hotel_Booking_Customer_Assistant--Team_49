@@ -801,9 +801,9 @@ if user_input:
                     temperature=0.2,
                     top_p=0.95
                 )
-                st.write("--- DEBUG: RAW LLM OUTPUT ---")
-                st.json(out) 
-                st.write("--- END DEBUG ---")
+                print("--- DEBUG: RAW LLM OUTPUT ---")
+                print(out) 
+                print("--- END DEBUG ---")
 
                 response_text = out.get("generation", {}).get("text") or "I couldn't generate a response."
                 latency = out["generation"].get("latency_s", 0)
