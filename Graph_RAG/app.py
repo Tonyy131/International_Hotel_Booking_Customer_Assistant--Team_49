@@ -246,36 +246,67 @@ with st.sidebar:
         index=0
     )
 
-    # NEW: Embedding Model Selection (Shown only when using embeddings)
-    selected_embedding_model = None
-
     # Requirement: Retrieval Method Selection
     retrieval_method = st.radio(
         "Retrieval",
         options=["Hybrid (Baseline + Embeddings)", "Baseline Only", "Embeddings Only"],
-        index=0
+        index=0,
+        key="retrieval_method_selector"
     )
+    
+    # Store in session state to track changes
+    if "last_retrieval_method" not in st.session_state:
+        st.session_state.last_retrieval_method = retrieval_method
+    elif st.session_state.last_retrieval_method != retrieval_method:
+        # Clear cache when retrieval method changes
+        st.cache_resource.clear()
+        st.session_state.last_retrieval_method = retrieval_method
     
     # Logic mapping for the pipeline flags
     use_embeddings = True
     use_baseline = True
     if retrieval_method == "Baseline Only":
         use_embeddings = False
+        use_baseline = True
     elif retrieval_method == "Embeddings Only":
+        use_embeddings = True
         use_baseline = False
+    else:  # Hybrid
+        use_embeddings = True
+        use_baseline = True
 
     # Conditionally show Embedding picker only when embeddings are used
+    selected_embedding_model = None
     if use_embeddings:
         embedding_option = st.radio(
             "Embedding",
             options=["MiniLM (ll-MiniLM-L6-v2)", "BGE (bge-small-en-v1.5)"],
             index=0,
-            horizontal=False
+            horizontal=False,
+            key="embedding_model_selector"
         )
         if "MiniLM" in embedding_option:
             selected_embedding_model = "minilm"
         else:
             selected_embedding_model = "bge"
+            
+        # Track embedding model changes
+        if "last_embedding_model" not in st.session_state:
+            st.session_state.last_embedding_model = selected_embedding_model
+        elif st.session_state.last_embedding_model != selected_embedding_model:
+            # Clear cache when embedding model changes
+            st.cache_resource.clear()
+            st.session_state.last_embedding_model = selected_embedding_model
+    else:
+        # When not using embeddings, set to None explicitly
+        selected_embedding_model = None
+
+    # Display current retrieval configuration
+    st.markdown("**Current Config:**")
+    config_display = f" **{retrieval_method}**"
+    if use_embeddings and selected_embedding_model:
+        config_display += f" | Embedding: **{selected_embedding_model.upper()}**"
+    st.info(config_display)
 
     st.markdown("---")
     # Local persistence disabled permanently
@@ -473,20 +504,23 @@ with st.sidebar:
     st.markdown("---")
 
 # --- 1. Robust Initialization ---
-# Update cache to depend on the selected embedding model
+# Create a unique cache key that includes all retrieval parameters
 @st.cache_resource(show_spinner="Loading Knowledge Graph...")
-def get_pipeline(embedding_model_name: str | None):
+def get_pipeline(embedding_model_name: str, use_embeddings_flag: bool, use_baseline_flag: bool):
     """
-    Initialize the RetrievalPipeline. 
-    Arguments are hashed; changing the model_name will reload the pipeline.
+    Initialize the RetrievalPipeline with the specified embedding model.
+    The cache key includes the embedding model name and flags to ensure 
+    the correct pipeline is loaded for each configuration.
     """
-    # Fallback to a default embedding model if none is provided
-    backend_model = embedding_model_name or "minilm"
-    return RetrievalPipeline(model_name=backend_model)
+    return RetrievalPipeline(model_name=embedding_model_name)
 
 try:
-    # Pass the selected model from sidebar to the pipeline
-    pipeline = get_pipeline(selected_embedding_model)
+    # Create a unique cache key based on current settings
+    # Use a default embedding model for baseline-only mode (won't be used but needed for initialization)
+    cache_embedding_model = selected_embedding_model if selected_embedding_model else "minilm"
+    
+    # Pass all parameters to ensure proper cache differentiation
+    pipeline = get_pipeline(cache_embedding_model, use_embeddings, use_baseline)
     backend_ready = True
 except Exception as e:
     st.error(f"Failed to connect to Knowledge Graph: {e}")
@@ -637,7 +671,12 @@ def visualize_subgraph(combined_results: Dict):
 
 # --- 4. Main Chat Interface ---
 st.title("Graph-RAG Travel Assistant")
-st.markdown(f"Ask about hotels, visas, or reviews.  Retrieval: {retrieval_method}")
+
+# Show active configuration prominently
+config_badge = f"**Active Config:** {retrieval_method}"
+if use_embeddings and selected_embedding_model:
+    config_badge += f" | Embedding Model: `{selected_embedding_model}`"
+st.markdown(config_badge)
 
 # --- Quick Query Suggestions (click to auto-submit) ---
 with st.container():
@@ -648,7 +687,7 @@ with st.container():
         "what countries need a visa to travel from china",
         "give me 5 hotels with high facilities score",
         "give me top 3 hotels with high value for money",
-        "what is the average review score for nile grandore hotel",
+        "what is the average review score for nile grandeur hotel",
     ]
 
     # Create a custom HTML container for the grid layout
@@ -671,7 +710,7 @@ for i, msg in enumerate(st.session_state.messages):
         
         # Requirement: View KG-retrieved context, Cypher queries, & Visualization
         if "data" in msg:
-            with st.expander(f"View Graph Reasoning (Found {len(msg['data'].get('combined',{}).get('hotels',[]))} nodes)"):
+            with st.expander(f"View Graph Reasoning "):
                 
                 # Tabbed view for cleaner UX
                 tab1, tab2, tab3 = st.tabs(["KG Context", "Graph Visualization", "Cypher Query"])
@@ -690,7 +729,10 @@ for i, msg in enumerate(st.session_state.messages):
                     if has_data:
                         # Pass the whole dictionary
                         fig = visualize_subgraph(combined_data)
-                        st.plotly_chart(fig, width='stretch', key=f"graph_{i}")
+                        if fig:  
+                            st.plotly_chart(fig, width='stretch', key=f"graph_{i}")
+                        else:
+                            st.info("No graph nodes connected enough to visualize.")
                     else:
                         st.info("No graph nodes (hotels or visa info) found to visualize.")
                 
@@ -728,15 +770,21 @@ if user_input:
             try:
                 start_time = time.perf_counter()
                 
-                # A. Retrieval Step
-                status_box.write(f"Querying Graph (Retrieval: {retrieval_method})...")
+                # A. Retrieval Step - Log the exact configuration being used
+                retrieval_config_log = f"**Configuration:**\n- Retrieval Method: {retrieval_method}\n- Baseline Enabled: {use_baseline}\n- Embeddings Enabled: {use_embeddings}"
+                if use_embeddings and selected_embedding_model:
+                    retrieval_config_log += f"\n- Embedding Model: {selected_embedding_model}\n- Pipeline Model: {pipeline.model_name}"
+                
+                status_box.write(retrieval_config_log)
+                status_box.write("Executing retrieval...")
                 
                 # Calling the cached pipeline - safe_retrieve handles errors gracefully
+                # CRITICAL: Ensure the flags match the UI selection
                 retrieval_result = pipeline.safe_retrieve(
                     query=user_input,
                     limit=1000,
-                    user_embeddings=use_embeddings,
-                    user_baseline=use_baseline,
+                    user_embeddings=use_embeddings,  # This controls whether embeddings are used
+                    user_baseline=use_baseline,      # This controls whether baseline Cypher is used
                     use_llm=True
                 )
                 
@@ -753,8 +801,11 @@ if user_input:
                     temperature=0.2,
                     top_p=0.95
                 )
-                
-                response_text = out["generation"].get("text", "I couldn't generate a response.")
+                st.write("--- DEBUG: RAW LLM OUTPUT ---")
+                st.json(out) 
+                st.write("--- END DEBUG ---")
+
+                response_text = out.get("generation", {}).get("text") or "I couldn't generate a response."
                 latency = out["generation"].get("latency_s", 0)
                 
                 total_time = time.perf_counter() - start_time
@@ -762,7 +813,21 @@ if user_input:
                 
                 # Display Result
                 st.markdown(response_text)
-                st.caption(f"Total: {total_time:.2f}s | LLM: {latency:.2f}s | Nodes Retrieved: {len(retrieval_result.get('combined',{}).get('hotels',[]))}")
+                
+                # Show detailed retrieval info
+                baseline_count = len(retrieval_result.get('combined',{}).get('others',[]))
+                embedding_count = len(retrieval_result.get('combined',{}).get('hotels',[]))
+                total_nodes = baseline_count + embedding_count
+                
+                retrieval_info = f"Total: {total_time:.2f}s | LLM: {latency:.2f}s | Nodes: {total_nodes}"
+                if use_baseline and use_embeddings:
+                    retrieval_info += f" (Baseline: {baseline_count}, Embeddings: {embedding_count})"
+                elif use_baseline:
+                    retrieval_info += f" (Baseline Only)"
+                elif use_embeddings:
+                    retrieval_info += f" (Embeddings Only: {selected_embedding_model})"
+                    
+                st.caption(retrieval_info)
 
                 # 3. Append Assistant Message (with data for visualization)
                 st.session_state.messages.append({
