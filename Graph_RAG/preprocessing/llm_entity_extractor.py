@@ -62,6 +62,11 @@ STRICT RULES:
     - If user only says a single numeric rating without context (e.g., "8"), assume it is a review score (10-scale).
     - Use "type": "stars" when user explicitly mentions "stars". Use "type": "score" for "8/10", "rating 8", "average rating".
     - If the user does not mention a value for the rating filter, NEVER assume any value and ALWAYS use "value": 0.
+    - If the user asks about value for money score then set the rating_filter type to "money".
+    - If the user asks about cleanliness score then set the rating_filter type to "cleanliness".
+    - If the user asks about comfort score then set the rating_filter type to "comfort".
+    - If the user asks about facilities score then set the rating_filter type to "facilities".
+    - If the user asks about staff score then set the rating_filter type to "staff".
    
 
 5. Hotels:

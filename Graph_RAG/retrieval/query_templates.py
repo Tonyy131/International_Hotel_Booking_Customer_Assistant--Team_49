@@ -574,7 +574,7 @@ QUERY_TEMPLATES = {
         OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
         WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
-        WITH h, c, avg(r.score_facilities) AS avg_facilities
+        WITH h, c, avg(r.score_facilities) AS avg_facilities , co
         WHERE avg_facilities IS NOT NULL
         RETURN h {
             .*,
@@ -596,7 +596,7 @@ QUERY_TEMPLATES = {
         OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
         WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
-        WITH h, c, avg(r.score_facilities) AS avg_facilities
+        WITH h, c, avg(r.score_facilities) AS avg_facilities , co
         WHERE avg_facilities IS NOT NULL
         RETURN h {
             .*,
@@ -701,7 +701,7 @@ QUERY_TEMPLATES = {
         OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
         WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
-        WITH h, c, avg(r.score_staff) AS avg_staff
+        WITH h, c, avg(r.score_staff) AS avg_staff , co
         WHERE avg_staff IS NOT NULL
         RETURN h {
             .*,
@@ -722,7 +722,7 @@ QUERY_TEMPLATES = {
         OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
         WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
         AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
-        WITH h, c, avg(r.score_staff) AS avg_staff
+        WITH h, c, avg(r.score_staff) AS avg_staff , co
         WHERE avg_staff IS NOT NULL
         RETURN h {
             .*,
@@ -827,7 +827,7 @@ QUERY_TEMPLATES = {
     OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
     WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
       AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
-    WITH h, c, avg(r.score_value_for_money) AS avg_value
+    WITH h, c, avg(r.score_value_for_money) AS avg_value , co
     WHERE avg_value IS NOT NULL
     RETURN h {
         .*,
@@ -848,7 +848,7 @@ QUERY_TEMPLATES = {
     OPTIONAL MATCH (h)<-[:REVIEWED]-(r:Review)
     WHERE ($cities IS NULL OR size($cities) = 0 OR c.name IN $cities)
       AND ($countries IS NULL OR size($countries) = 0 OR co.name IN $countries)
-    WITH h, c, avg(r.score_value_for_money) AS avg_value
+    WITH h, c, avg(r.score_value_for_money) AS avg_value , co
     WHERE avg_value IS NOT NULL
     RETURN h {
         .*,
