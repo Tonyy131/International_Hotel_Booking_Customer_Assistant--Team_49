@@ -197,7 +197,6 @@ with st.sidebar:
     model_name = st.selectbox(
         "Model",
         options=[
-            "Qwen/Qwen2.5-1.5B-Instruct",
             "meta-llama/Llama-3.1-8B-Instruct", 
             "mistralai/Mistral-7B-Instruct-v0.2",
             "deepseek-ai/DeepSeek-V3.2",
@@ -599,6 +598,24 @@ def visualize_subgraph(combined_results: Dict):
 st.title("Graph-RAG Travel Assistant")
 st.markdown(f"Ask about hotels, visas, or reviews.  Retrieval: {retrieval_method}")
 
+# --- Quick Query Suggestions (click to auto-submit) ---
+with st.container():
+    st.caption("Recommended Queries:")
+    quick_queries = [
+        "give me the best hotels to go to a business trip",
+        "what are the best hotels to go to without needing visa if i live in egypt",
+        "what countries need a visa to travel from china",
+        "give me 5 hotels with high facilities score",
+        "give me top 3 hotels with high value for money",
+        "what is the average review score for nile grandore hotel",
+    ]
+
+    cols = st.columns(3)
+    for i, q in enumerate(quick_queries):
+        if cols[i % 3].button(q, key=f"qq_{i}"):
+            st.session_state["pending_prompt"] = q
+            st.rerun()
+
 # Render Chat History
 for i, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"]):
@@ -642,15 +659,19 @@ for i, msg in enumerate(st.session_state.messages):
                     else:
                         st.info("No Cypher query was executed for this request (or Embeddings Only mode used).")
 
-# Input Handler
-if prompt := st.chat_input("Ask TAJR"):
+# Handle pending quick-query clicks
+pending_prompt = st.session_state.pop("pending_prompt", None)
+
+# Input Handler (chat or quick query)
+user_input = pending_prompt or st.chat_input("Ask TAJR")
+if user_input:
     if not backend_ready:
         st.error("Backend is unavailable. Please check Neo4j connection.")
     else:
         # 1. Append User Message
-        st.session_state.messages.append({"role": "user", "content": prompt})
+        st.session_state.messages.append({"role": "user", "content": user_input})
         with st.chat_message("user"):
-            st.markdown(prompt)
+            st.markdown(user_input)
 
         # 2. Process with Assistant
         with st.chat_message("assistant"):
@@ -664,7 +685,7 @@ if prompt := st.chat_input("Ask TAJR"):
                 
                 # Calling the cached pipeline - safe_retrieve handles errors gracefully
                 retrieval_result = pipeline.safe_retrieve(
-                    query=prompt,
+                    query=user_input,
                     limit=1000,
                     user_embeddings=use_embeddings,
                     user_baseline=use_baseline,
@@ -678,7 +699,7 @@ if prompt := st.chat_input("Ask TAJR"):
                 
                 out = answer_with_model(
                     model_name=model_name,
-                    user_query=prompt,
+                    user_query=user_input,
                     context_text=context_text,
                     max_new_tokens=512,
                     temperature=0.2,
