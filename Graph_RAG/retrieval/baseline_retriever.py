@@ -14,6 +14,7 @@ class BaselineRetriever:
     def retrieve(self, intent: str, entities: Dict[str, Any], limit: int = 10):
         intent = intent or "hotel_search"
         e = entities or {}
+        limit = e.get("limit")
 
         def _exec_and_extract(cypher_key, params):
             """Run template, extract hotel dicts when available."""
@@ -38,6 +39,7 @@ class BaselineRetriever:
                 else:
                     # fallback: return the raw record (for queries like reviews or visa)
                     cleaned.append(rec)
+                    
 
             return cleaned, QUERY_TEMPLATES[cypher_key]
 
@@ -90,6 +92,9 @@ class BaselineRetriever:
                 if op == "lte" :
                     params = {"cities": cities, "countries": countries, "limit": limit}
                     return _exec_and_extract("worst_hotel_cleanliness", params)
+                if op is None :
+                    params = {"cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("top_hotel_cleanliness", params)
             elif rf and rf.get("type") == "comfort":
                 op = rf.get("operator")
                 if op == "gte" and (rf.get("value") is not None and rf.get("value") != 0):
@@ -113,6 +118,9 @@ class BaselineRetriever:
                 if op == "lte" :
                     params = {"cities": cities, "countries": countries, "limit": limit}
                     return _exec_and_extract("worst_hotel_comfort", params) 
+                if op is None :
+                    params = {"cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("top_hotel_comfort", params)
             elif rf and rf.get("type") == "facilities":
                 op = rf.get("operator")
                 if op == "gte" and (rf.get("value") is not None and rf.get("value") != 0):
@@ -136,6 +144,9 @@ class BaselineRetriever:
                 if op == "lte" :
                     params = {"cities": cities, "countries": countries, "limit": limit}
                     return _exec_and_extract("worst_hotel_facilities", params)
+                if op is None :
+                    params = {"cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("top_hotel_facilities", params)
             elif rf and rf.get("type") == "staff":
                 op = rf.get("operator")
                 if op == "gte" and (rf.get("value") is not None and rf.get("value") != 0):
@@ -159,6 +170,9 @@ class BaselineRetriever:
                 if op == "lte" :
                     params = {"cities": cities, "countries": countries, "limit": limit}
                     return _exec_and_extract("worst_hotel_staff", params)
+                if op is None :
+                    params = {"cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("top_hotel_staff", params)
             elif rf and rf.get("type") == "money":
                 op = rf.get("operator")
                 if op == "gte" and (rf.get("value") is not None and rf.get("value") != 0):
@@ -182,6 +196,9 @@ class BaselineRetriever:
                 if op == "lte" :
                     params = {"cities": cities, "countries": countries, "limit": limit}
                     return _exec_and_extract("worst_hotel_value_for_money", params)
+                if op is None :
+                    params = {"cities": cities, "countries": countries, "limit": limit}
+                    return _exec_and_extract("top_hotel_value_for_money", params)
             elif rf and rf.get("type") != "none":
                 op = rf.get("operator")
                 if op == "gte" and (rf.get("value") is not None and rf.get("value") != 0):

@@ -16,7 +16,7 @@ SCHEMA:
     "hotels": ["Hotel Name", ...],
     "origin_country": ["Country", ...],
     "destination_country": ["Country", ...],
-    "traveller_type": "solo|family|couple|business|group|null",
+    "traveller_type": "Solo|Family|Couple|Business|Group|null",
     "age_group": "18-24|25-34|35-44|45-54|55+|null",
     "gender": ["male","female"] or [],
     "rating": number or null,
@@ -37,7 +37,8 @@ SCHEMA:
         "value": number|null,
         "min": number|null,
         "max": number|null
-    }
+    },
+    "limit": integer
 }
 
 STRICT RULES:
@@ -61,6 +62,11 @@ STRICT RULES:
     - If user only says a single numeric rating without context (e.g., "8"), assume it is a review score (10-scale).
     - Use "type": "stars" when user explicitly mentions "stars". Use "type": "score" for "8/10", "rating 8", "average rating".
     - If the user does not mention a value for the rating filter, NEVER assume any value and ALWAYS use "value": 0.
+    - If the user asks about value for money score then set the rating_filter type to "money".
+    - If the user asks about cleanliness score then set the rating_filter type to "cleanliness".
+    - If the user asks about comfort score then set the rating_filter type to "comfort".
+    - If the user asks about facilities score then set the rating_filter type to "facilities".
+    - If the user asks about staff score then set the rating_filter type to "staff".
    
 
 5. Hotels:
@@ -75,6 +81,9 @@ STRICT RULES:
 
 8. The "countries" field must list ALL countries mentioned in the user query 
    or implied by cities.
+
+9. The limit is the number of results that should be returned by the search engine.
+   if the user doesn't specify a limit, default to 100.
 
 """
 
