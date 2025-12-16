@@ -101,7 +101,8 @@ class EmbeddingRetriever:
 
         RETURN node.name AS name, node.hotel_id AS hotel_id, score
         ORDER BY score DESC
-        LIMIT $top_k
+        LIMIT toInteger(coalesce($top_k, 10))
+
         """
 
         cypher = cypher % self.property_name
@@ -180,7 +181,8 @@ class EmbeddingRetriever:
 
         RETURN node.name AS name, node.hotel_id AS hotel_id, score
         ORDER BY score DESC
-        LIMIT $top_k
+        LIMIT toInteger(coalesce($top_k, 10))
+
         """
 
         cypher = cypher % self.property_name
@@ -258,7 +260,7 @@ class EmbeddingRetriever:
 
         RETURN node.name AS name, node.hotel_id AS hotel_id, score
         ORDER BY score DESC
-        LIMIT $top_k
+        LIMIT toInteger(coalesce($top_k, 10))
         """
 
         cypher = cypher % self.property_name
@@ -337,7 +339,7 @@ class EmbeddingRetriever:
 
         RETURN node.name AS name, node.hotel_id AS hotel_id, score
         ORDER BY score DESC
-        LIMIT $top_k
+        LIMIT toInteger(coalesce($top_k, 10))
         """
 
         cypher = cypher % self.property_name
@@ -416,7 +418,7 @@ class EmbeddingRetriever:
 
         RETURN node.name AS name, node.hotel_id AS hotel_id, score
         ORDER BY score DESC
-        LIMIT $top_k
+        LIMIT toInteger(coalesce($top_k, 10))
         """
 
         cypher = cypher % self.property_name
@@ -623,7 +625,8 @@ class EmbeddingRetriever:
             review_texts, 
             score
         ORDER BY score DESC
-        LIMIT $top_k
+        LIMIT toInteger(coalesce($top_k, 10))
+
         """
 
         results = self.db.run_query(cypher, params)
