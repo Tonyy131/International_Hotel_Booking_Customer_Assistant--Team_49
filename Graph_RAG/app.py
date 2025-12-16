@@ -206,19 +206,8 @@ with st.sidebar:
         index=0
     )
 
-    # NEW: Embedding Model Selection
-    # Maps user-friendly names to internal keys expected by RetrievalPipeline
-    embedding_option = st.radio(
-        "Embedding",
-        options=["MiniLM (ll-MiniLM-L6-v2)", "BGE (bge-small-en-v1.5)"],
-        index=0
-    )
-    
-    # Map selection to backend keys
-    if "MiniLM" in embedding_option:
-        selected_embedding_model = "minilm"
-    else:
-        selected_embedding_model = "bge"
+    # NEW: Embedding Model Selection (Shown only when using embeddings)
+    selected_embedding_model = None
 
     # Requirement: Retrieval Method Selection
     retrieval_method = st.radio(
@@ -234,6 +223,19 @@ with st.sidebar:
         use_embeddings = False
     elif retrieval_method == "Embeddings Only":
         use_baseline = False
+
+    # Conditionally show Embedding picker only when embeddings are used
+    if use_embeddings:
+        embedding_option = st.radio(
+            "Embedding",
+            options=["MiniLM (ll-MiniLM-L6-v2)", "BGE (bge-small-en-v1.5)"],
+            index=0,
+            horizontal=False
+        )
+        if "MiniLM" in embedding_option:
+            selected_embedding_model = "minilm"
+        else:
+            selected_embedding_model = "bge"
 
     st.markdown("---")
     # Local persistence disabled permanently
@@ -432,13 +434,15 @@ with st.sidebar:
 
 # --- 1. Robust Initialization ---
 # Update cache to depend on the selected embedding model
-@st.cache_resource(show_spinner=f"Loading Knowledge Graph with {selected_embedding_model}...")
-def get_pipeline(embedding_model_name: str):
+@st.cache_resource(show_spinner="Loading Knowledge Graph...")
+def get_pipeline(embedding_model_name: str | None):
     """
     Initialize the RetrievalPipeline. 
     Arguments are hashed; changing the model_name will reload the pipeline.
     """
-    return RetrievalPipeline(model_name=embedding_model_name)
+    # Fallback to a default embedding model if none is provided
+    backend_model = embedding_model_name or "minilm"
+    return RetrievalPipeline(model_name=backend_model)
 
 try:
     # Pass the selected model from sidebar to the pipeline
@@ -593,7 +597,7 @@ def visualize_subgraph(combined_results: Dict):
 
 # --- 4. Main Chat Interface ---
 st.title("Graph-RAG Travel Assistant")
-st.markdown(f"Ask about hotels, visas, or reviews.  Current embedding: {selected_embedding_model}")
+st.markdown(f"Ask about hotels, visas, or reviews.  Retrieval: {retrieval_method}")
 
 # Render Chat History
 for i, msg in enumerate(st.session_state.messages):
@@ -656,11 +660,12 @@ if prompt := st.chat_input("Ask TAJR"):
                 start_time = time.perf_counter()
                 
                 # A. Retrieval Step
-                status_box.write(f"Querying Graph (Embeddings: {selected_embedding_model})...")
+                status_box.write(f"Querying Graph (Retrieval: {retrieval_method})...")
                 
                 # Calling the cached pipeline - safe_retrieve handles errors gracefully
                 retrieval_result = pipeline.safe_retrieve(
                     query=prompt,
+                    limit=1000,
                     user_embeddings=use_embeddings,
                     user_baseline=use_baseline,
                     use_llm=True

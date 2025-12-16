@@ -1,128 +1,91 @@
-query_index,query,model,latency_s,end_to_end_latency_s,response_text,error,approx_input_tokens,approx_output_tokens
-0,Find me hotels in Cairo above 8.,meta-llama/Llama-3.1-8B-Instruct,1.3929471999872476,1.3929882000666112,"Based on the provided CONTEXT, the hotel that meets your criteria is:
+query_index,query,model,latency_s,end_to_end_latency_s,approx_input_tokens,approx_output_tokens,total_tokens,estimated_cost_usd,error_flag,error,accuracy_flag,response_text
+0,Find me hotels in Cairo above 8.,Qwen/Qwen2.5-1.5B-Instruct,1.9976218999981938,3.3467864000012923,170,5,175,,0,,1,- Nile Grandeur (Score: 8.75969581749047)
+0,Find me hotels in Cairo above 8.,meta-llama/Llama-3.1-8B-Instruct,1.262288099998841,2.052987099999882,170,16,186,,0,,1,"I found a hotel in the context that matches your criteria.
 
-* Nile Grandeur (avg_score=8.76) - Its average score is above 8.",,124,23
-0,Find me hotels in Cairo above 8.,Qwen/Qwen2.5-1.5B-Instruct,1.959545599995181,1.9595982999308035,Nile Grandeur (avg_score=8.76),,124,3
-0,Find me hotels in Cairo above 8.,deepseek-ai/DeepSeek-R1,15.2743565000128,15.274422900052741,"<think>
-Hmm, the user is asking for hotels in Cairo with an average score above 8. Let me look at the context provided. There are two entries for ""Nile Grandeur"" with very different average scores: one at 8.76 and another at 0.77. The 8.76 score has detailed traveler-type breakdowns (Business: 8.64, Couple: 8.75, Family: 8.86, Solo: 8.78 via baseline), while the 0.77 is marked as via embedding. 
+* Nile Grandeur (Score: 8.75969581749047)"
+0,Find me hotels in Cairo above 8.,mistralai/Mistral-7B-Instruct-v0.2,4.331864700001461,5.160933699997258,170,65,235,,0,,0,"Based on the context provided, here are the hotels in Cairo with scores above 8:
 
-The key here is that only the first Nile Grandeur entry meets the ""above 8"" criteria. The second one clearly doesn't. The context doesn't mention any other hotels, so I can't recommend anything else. I should note that the embedding-based score seems like an outlier or error, but since my instructions say to use only the context, I'll ignore that interpretation. 
+- Nile Grandeur (Score: 8.75969581749047)
 
-The user probably wants a clear, concise answer. Since only one hotel qualifies, I'll present it in a bullet point as requested, highlighting its score and traveler ratings. I should also mention the low-score entry exists in context but doesn't meet the criteria, to show I considered all data. 
+The context only mentions one hotel that fits your criteria, but I am committed to providing you with at least three options. Therefore, I cannot provide two more hotels based on the context alone. I recommend checking other sources for additional hotel options in Cairo."
+0,Find me hotels in Cairo above 8.,deepseek-ai/DeepSeek-V3.2,2.3705451999994693,3.2614124000028824,170,34,204,,0,,0,"Based on the provided context, I found one hotel that matches your request for hotels in Cairo with a score above 8.
 
-The user might be planning a trip to Cairo - perhaps for leisure given the high family/couple scores. I'll keep the response factual but add that traveler-type detail since it could help them decide. No need to over-explain the score discrepancy unless asked.
-</think>
+**Hotels in Cairo (Score > 8):**
 
-Based strictly on the provided context:
+*   **Nile Grandeur** - Score: 8.75969581749047"
+0,Find me hotels in Cairo above 8.,openai/gpt-oss-20b,0.662528699998802,0.8241964999979245,170,20,190,,0,,0,- **Nile Grandeur** – Score: **8.76** (above 8) – This hotel meets your requirement for a high‑scoring stay in Cairo.
+1,Recommend 3 family-friendly hotels in Berlin.,Qwen/Qwen2.5-1.5B-Instruct,0.16782619999867165,0.16798100000232807,212,0,212,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/featherless-ai/v1/chat/completions (Request ID: Root=1-69407d0f-0c1f36e502f6c1da6db005d3;bb68327c-62ca-4daa-abdd-6d170cdb1bb3)
 
-*   **Nile Grandeur** (avg_score=8.76) - This hotel has an average score above 8. It also has high traveler-type scores (Business: 8.64, Couple: 8.75, Family: 8.86, Solo: 8.78).
+You have reached the free monthly usage limit for featherless-ai. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+1,Recommend 3 family-friendly hotels in Berlin.,meta-llama/Llama-3.1-8B-Instruct,0.17360259999986738,0.17365259999860427,212,0,212,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/novita/v3/openai/chat/completions (Request ID: Root=1-69407d0f-079e35e20d600ab316972bd8;fe407509-afc0-4a97-b65d-6bfccb7e5f8d)
 
-**Note:** The context also lists a ""Nile Grandeur"" with an avg_score=0.77, but this score is below 8 and does not meet your criteria. No other hotels meeting your criteria are mentioned in the context.",,124,288
-0,Find me hotels in Cairo above 8.,mistralai/Mistral-7B-Instruct-v0.2,6.086913199978881,6.086946600000374,"Based on the context provided, the following hotel in Cairo has an average score above 8:
+You have reached the free monthly usage limit for novita. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+1,Recommend 3 family-friendly hotels in Berlin.,mistralai/Mistral-7B-Instruct-v0.2,0.16685089999737102,0.1669024000002537,212,0,212,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/featherless-ai/v1/chat/completions (Request ID: Root=1-69407d0f-11fa854b50a2fa1f447c62dd;16454f99-8b48-411a-be18-f1298f53cb07)
 
-- Nile Grandeur (avg_score=8.76)",,124,20
-1,Recommend 3 family-friendly hotels in Berlin.,meta-llama/Llama-3.1-8B-Instruct,1.714603599975817,1.7146488999715075,"Unfortunately, the provided context does not contain information about family-friendly hotels in Berlin. It only mentions one hotel, Berlin Mitte Elite, with an average score of 0.74. 
+You have reached the free monthly usage limit for featherless-ai. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+1,Recommend 3 family-friendly hotels in Berlin.,deepseek-ai/DeepSeek-V3.2,0.16433870000037132,0.16438990000096965,212,0,212,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/novita/v3/openai/chat/completions (Request ID: Root=1-69407d10-4bed1298564fdabb3e2a169a;e8d5d481-efdd-46fc-a745-39f5b6fc3ee4)
 
-However, I can provide a factual response based on the given information:
+You have reached the free monthly usage limit for novita. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+1,Recommend 3 family-friendly hotels in Berlin.,openai/gpt-oss-20b,0.15944460000173422,0.15949240000190912,212,0,212,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/groq/openai/v1/chat/completions (Request ID: Root=1-69407d10-35df2f262d07539b0d205825;f0e70d58-09e3-49fa-bbcc-3d9e33c532c3)
 
-Unfortunately, I cannot recommend any family-friendly hotels in Berlin based on the provided context.",,104,53
-1,Recommend 3 family-friendly hotels in Berlin.,Qwen/Qwen2.5-1.5B-Instruct,2.044032800011337,2.0440643000183627,"- Berlin Mitte Elite (avg_score=0.74) - Justification: It's located in Berlin Mitte, which is known for its family-friendly atmosphere.",,104,19
-1,Recommend 3 family-friendly hotels in Berlin.,deepseek-ai/DeepSeek-R1,9.903638599906117,9.903696800000034,"<think>
-Hmm, the user is asking me to recommend 3 family-friendly hotels in Berlin. Looking at the context, I only have one hotel retrieved: Berlin Mitte Elite with an average score of 0.74. There's no information about whether this hotel is family-friendly or not - no mention of amenities for children, family rooms, or anything related to families.
+You have reached the free monthly usage limit for groq. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+2,Which hotels in Tokyo have excellent cleanliness?,Qwen/Qwen2.5-1.5B-Instruct,0.16899779999948805,0.16905520000000251,208,0,208,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/featherless-ai/v1/chat/completions (Request ID: Root=1-69407d12-49f3975a274d7ee86056ca2c;3de689b8-2378-47e9-ab24-b90bf2558c0d)
 
-I need to be careful here. My instructions are clear: I must only use the provided context and never hallucinate information. Since the context doesn't contain any details about family-friendliness for this hotel, and doesn't provide any other hotels that might be suitable, I can't make a recommendation.
+You have reached the free monthly usage limit for featherless-ai. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+2,Which hotels in Tokyo have excellent cleanliness?,meta-llama/Llama-3.1-8B-Instruct,0.16511199999877135,0.16515439999784576,208,0,208,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/novita/v3/openai/chat/completions (Request ID: Root=1-69407d12-7818c32b6b0edc7e121c5c47;27ffe6a7-49dd-4462-a9a4-6596edf6d548)
 
-The user specifically asked for three family-friendly hotels, but I only have one hotel in the context, and even that one lacks the necessary information. I should politely explain that I can't fulfill their request based on the available data. I'll be honest and transparent about the limitation while remaining helpful in my response.
-</think>
+You have reached the free monthly usage limit for novita. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+2,Which hotels in Tokyo have excellent cleanliness?,mistralai/Mistral-7B-Instruct-v0.2,0.16675500000201282,0.1668083000004117,208,0,208,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/featherless-ai/v1/chat/completions (Request ID: Root=1-69407d12-174d7319375b161511bd51c1;453d08f0-8499-4fb6-a46f-d1e8ae0b6978)
 
-Based solely on the provided context:
+You have reached the free monthly usage limit for featherless-ai. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+2,Which hotels in Tokyo have excellent cleanliness?,deepseek-ai/DeepSeek-V3.2,0.1632443999988027,0.1632917000024463,208,0,208,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/novita/v3/openai/chat/completions (Request ID: Root=1-69407d12-7a9755672917e7ba2f9d7218;7d080774-d0df-40ef-959b-da62dfa97bc9)
 
-I cannot recommend 3 family-friendly hotels in Berlin. The context only lists one hotel (""Berlin Mitte Elite"") and provides no information about its suitability for families (e.g., family rooms, amenities for children, etc.).
+You have reached the free monthly usage limit for novita. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+2,Which hotels in Tokyo have excellent cleanliness?,openai/gpt-oss-20b,0.16377469999861205,0.16382330000124057,208,0,208,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/groq/openai/v1/chat/completions (Request ID: Root=1-69407d12-40f3d37f5456ce841fa260ac;176586ae-fa16-47fa-82ea-40066b8034b4)
 
-The context does not contain enough information to answer your query.",,104,211
-1,Recommend 3 family-friendly hotels in Berlin.,mistralai/Mistral-7B-Instruct-v0.2,4.3364111999981105,4.3364577000029385,"Based on the context provided, there is only one hotel mentioned, the ""Berlin Mitte Elite"" with an average score of 0.74. Unfortunately, the context does not contain enough information to determine if this hotel is family-friendly or not. Therefore, I cannot recommend three family-friendly hotels based on the given context.",,104,50
-2,Which hotels in Tokyo have excellent cleanliness?,meta-llama/Llama-3.1-8B-Instruct,0.9870898000663146,0.9871350999455899,"Unfortunately, the provided CONTEXT does not contain information about the cleanliness of the hotels. It only provides average scores and traveller-type scores for the Kyo-to Grand hotel.",,124,27
-2,Which hotels in Tokyo have excellent cleanliness?,Qwen/Qwen2.5-1.5B-Instruct,1.9848533000331372,1.9849056000821292,Kyo-to Grand has an average score of 8.97 for cleanliness across all traveller types.,,124,14
-2,Which hotels in Tokyo have excellent cleanliness?,deepseek-ai/DeepSeek-R1,11.196977599989623,11.197025000001304,"<think>
-Hmm, the user is asking about hotels in Tokyo with excellent cleanliness. Let me check the context provided. 
+You have reached the free monthly usage limit for groq. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+3,Is a visa needed to travel from Egypt to Germany?,Qwen/Qwen2.5-1.5B-Instruct,0.16429840000273543,0.16436700000122073,168,0,168,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/featherless-ai/v1/chat/completions (Request ID: Root=1-69407d14-4ddb271b11c492871900ae9d;102d36ab-dcdb-49c6-90e1-e91b7f7aa48e)
 
-Looking at the retrieved hotels, I see two entries for ""Kyo-to Grand"" - one with avg_score=8.97 and traveler-type scores, and another with avg_score=0.72 via embedding. But both mention ""Kyo-to"" which seems like a misspelling of Kyoto. 
+You have reached the free monthly usage limit for featherless-ai. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+3,Is a visa needed to travel from Egypt to Germany?,meta-llama/Llama-3.1-8B-Instruct,0.16918020000230172,0.16922189999968396,168,0,168,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/novita/v3/openai/chat/completions (Request ID: Root=1-69407d14-096e87b132ed9eed25420fdd;cf4f86b9-eba7-41cc-b97b-b61077402ca3)
 
-The context doesn't contain any hotels in Tokyo at all. The only hotel mentioned is in Kyoto, and even that has inconsistent scores. The first entry shows high ratings (8.97 average) while the second shows very low (0.72). 
+You have reached the free monthly usage limit for novita. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+3,Is a visa needed to travel from Egypt to Germany?,mistralai/Mistral-7B-Instruct-v0.2,0.16945539999869652,0.16949899999963236,168,0,168,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/featherless-ai/v1/chat/completions (Request ID: Root=1-69407d15-1279f0184b9ffe1d3b9dad0f;458505b9-b006-4b78-9e1e-95b83ce886cb)
 
-I notice the traveler-type scores for Kyoto Grand include business, couple, family and solo ratings, but none specifically mention cleanliness. The user's query focuses on cleanliness, but the context doesn't provide that detail for any property.
+You have reached the free monthly usage limit for featherless-ai. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+3,Is a visa needed to travel from Egypt to Germany?,deepseek-ai/DeepSeek-V3.2,0.16402129999914905,0.16406830000050832,168,0,168,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/novita/v3/openai/chat/completions (Request ID: Root=1-69407d15-32ffdd4c218f0502780881bf;8c224e41-7fbc-4d01-b5d4-2b2a126f93b4)
 
-Since the context lacks Tokyo hotels entirely and doesn't specify cleanliness ratings for the Kyoto property, I can't recommend any hotels based on this information. The best approach is to politely state that the context doesn't contain relevant information about Tokyo hotels with excellent cleanliness.
-</think>
+You have reached the free monthly usage limit for novita. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+3,Is a visa needed to travel from Egypt to Germany?,openai/gpt-oss-20b,0.1605371000005107,0.16058390000034706,168,0,168,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/groq/openai/v1/chat/completions (Request ID: Root=1-69407d15-416e28802bfacff72c61e794;6bd16a90-97ee-49e0-9928-b56bf9dddf14)
 
-Based strictly on the provided context:
+You have reached the free monthly usage limit for groq. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+4,Find boutique hotels in Paris.,Qwen/Qwen2.5-1.5B-Instruct,0.16783420000137994,0.16790949999995064,207,0,207,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/featherless-ai/v1/chat/completions (Request ID: Root=1-69407d17-0bd22b5c757c5afb19ab2e8e;990c8bb4-00ad-4acc-8260-0c02cf310522)
 
-I cannot recommend any hotels in Tokyo with excellent cleanliness. The context only contains information about a hotel in Kyoto (""Kyo-to Grand""), not Tokyo. No hotels in Tokyo are mentioned.
+You have reached the free monthly usage limit for featherless-ai. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+4,Find boutique hotels in Paris.,meta-llama/Llama-3.1-8B-Instruct,0.16494939999756753,0.16499670000121114,207,0,207,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/novita/v3/openai/chat/completions (Request ID: Root=1-69407d17-20d7e7da109111c7666c36da;a526dbf0-d108-48f5-a5e6-d4d393b1e528)
 
-**Answer:**
-I'm sorry, but the provided context does not contain any information about hotels in Tokyo. I cannot answer your query based on the given information.",,124,237
-2,Which hotels in Tokyo have excellent cleanliness?,mistralai/Mistral-7B-Instruct-v0.2,3.5115337999304757,3.5115767000243068,"Based on the context provided, there is no hotel in Tokyo mentioned with a high cleanliness score. Both mentions of ""Kyo-to Grand"" have different average scores (8.97 via baseline and 0.72 via embedding), but cleanliness scores are not provided for either. Therefore, I cannot provide a definitive answer based on the context given.",,124,53
-3,Is a visa needed to travel from Egypt to Germany?,meta-llama/Llama-3.1-8B-Instruct,1.170948899933137,1.1709925000322983,"I'm not able to provide information about visa requirements based on the provided context. The context only includes information about retrieved hotels and their average scores, but does not mention visa requirements or travel information.",,114,35
-3,Is a visa needed to travel from Egypt to Germany?,Qwen/Qwen2.5-1.5B-Instruct,2.21999340003822,2.220043999957852,"No, a visa is generally not required for travelers traveling between Egypt and Germany. However, it's always best to check the latest requirements as they can change.",,114,27
-3,Is a visa needed to travel from Egypt to Germany?,deepseek-ai/DeepSeek-R1,8.905428599915467,8.905469799996354,"<think>
-Hmm, the user is asking if a visa is needed to travel from Egypt to Germany. Let me check the context provided. The retrieved hotels are Nile Grandeur in Egypt and Berlin Mitte Elite in Germany. Both are mentioned with their average scores and that they were retrieved via embedding. 
+You have reached the free monthly usage limit for novita. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+4,Find boutique hotels in Paris.,mistralai/Mistral-7B-Instruct-v0.2,0.16844790000322973,0.16850200000044424,207,0,207,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/featherless-ai/v1/chat/completions (Request ID: Root=1-69407d17-6bdebbae284bfaa93103d905;7ad4eb4b-98fa-4a40-bea7-7203d0799341)
 
-Looking at the context again, there's no information about visa requirements. The assistant must only use the given context and not hallucinate. Since the context doesn't mention visas or travel regulations, the correct response is to politely state that the information isn't available. 
+You have reached the free monthly usage limit for featherless-ai. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+4,Find boutique hotels in Paris.,deepseek-ai/DeepSeek-V3.2,0.16283520000069984,0.16288469999926747,207,0,207,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/novita/v3/openai/chat/completions (Request ID: Root=1-69407d17-3fe2ce2f4b7d2ef217147838;ef486938-b3a5-473f-9c8f-a66df818498a)
 
-The user might be planning a trip and is concerned about entry requirements. They might not realize that hotel recommendations don't include visa info. It's important to stick to the context to avoid giving incorrect advice. The answer should be clear and direct, as per the instructions.
-</think>
+You have reached the free monthly usage limit for novita. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+4,Find boutique hotels in Paris.,openai/gpt-oss-20b,0.16018629999962286,0.16023649999988265,207,0,207,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/groq/openai/v1/chat/completions (Request ID: Root=1-69407d17-0dab90d04e8e16804bab1bf7;334cf565-7f49-4063-9ded-a04f18635e5a)
 
-Based solely on the provided context:
+You have reached the free monthly usage limit for groq. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+5,What are the best hotels for business travellers?,Qwen/Qwen2.5-1.5B-Instruct,0.17349540000213892,0.17359399999986636,206,0,206,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/featherless-ai/v1/chat/completions (Request ID: Root=1-69407d19-5512fe756f08a5dc743b04dd;aec4f1b6-fc95-45bd-a7ff-088db15b3dfe)
 
-I'm sorry, but the provided context does not contain any information about visa requirements for travel between Egypt and Germany. The context only lists hotel names and their average scores.
+You have reached the free monthly usage limit for featherless-ai. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+5,What are the best hotels for business travellers?,meta-llama/Llama-3.1-8B-Instruct,0.16257210000185296,0.1626228999994055,206,0,206,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/novita/v3/openai/chat/completions (Request ID: Root=1-69407d1a-63058b7d148338d51f7a56c3;66a7ef6e-f3d9-4261-a856-a7c2438a808a)
 
-Answer: I'm sorry, but the provided context does not contain information about visa requirements for travel between Egypt and Germany.",,114,198
-3,Is a visa needed to travel from Egypt to Germany?,mistralai/Mistral-7B-Instruct-v0.2,1.8894801000133157,1.889528700034134,"I'm sorry, the context provided does not contain information about visa requirements for traveling from Egypt to Germany.",,114,18
-4,Find boutique hotels in Paris.,meta-llama/Llama-3.1-8B-Instruct,1.456764700007625,1.4568303000414744,"Unfortunately, the context does not provide information about the hotel type (boutique) or the location (Paris). It only contains information about the hotel ""L'Étoile Palace"" with its average scores and traveller-type scores.",,122,32
-4,Find boutique hotels in Paris.,Qwen/Qwen2.5-1.5B-Instruct,1.4535533000016585,1.4535895999288186,There is no information about boutique hotels in the given CONTEXT.,,122,11
-4,Find boutique hotels in Paris.,deepseek-ai/DeepSeek-R1,13.910959400003776,13.911015499965288,"<think>
-Alright, let's tackle this user's query about finding boutique hotels in Paris. So, the user is asking specifically for boutique hotels in Paris. First, I need to recall what defines a boutique hotel. Typically, they are smaller, stylish, and offer personalized services, often with unique designs. 
+You have reached the free monthly usage limit for novita. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+5,What are the best hotels for business travellers?,mistralai/Mistral-7B-Instruct-v0.2,0.16822250000041095,0.16827199999897857,206,0,206,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/featherless-ai/v1/chat/completions (Request ID: Root=1-69407d1a-46a5edcf77503b5c01a38072;19413226-7c5d-4198-bd87-91fbda6e4fd0)
 
-Looking at the context provided, there are two entries for ""L'Étoile Palace."" The first one has an average score of 8.95, with traveler-type scores broken down for Business, Couple, Family, and Solo. The second entry shows the same hotel name but with an average score of 0.72 via embedding. Hmm, that's a significant difference in scores. 
+You have reached the free monthly usage limit for featherless-ai. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+5,What are the best hotels for business travellers?,deepseek-ai/DeepSeek-V3.2,0.1615788999988581,0.16163260000030277,206,0,206,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/novita/v3/openai/chat/completions (Request ID: Root=1-69407d1a-601e2995280c93897c2dace1;9723be4b-e4b2-40b4-90de-64bc2304e4b5)
 
-Wait, why are there two entries for the same hotel? The first one has detailed traveler-type scores, while the second mentions it's via embedding. Maybe the embedding method pulled in a different data point, but the score is so low. That seems inconsistent. 
+You have reached the free monthly usage limit for novita. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
+5,What are the best hotels for business travellers?,openai/gpt-oss-20b,0.20860019999963697,0.2086602999988827,206,0,206,,1,"402 Client Error: Payment Required for url: https://router.huggingface.co/groq/openai/v1/chat/completions (Request ID: Root=1-69407d1a-5b8194ce7fba31f2322e42fe;74c043ba-3ace-448e-8c01-7a381cf421da)
 
-The user's query is about boutique hotels. The context doesn't mention anything about the hotel being boutique. It only provides the name and scores. Without additional details like size, style, or services, it's hard to confirm if L'Étoile Palace fits the boutique category. 
-
-Since the context doesn't specify any hotel as boutique, I can't confidently say L'Étoile Palace is one. Also, the second entry's low score via embedding might indicate a data discrepancy, but without more context, it's unclear. 
-
-Therefore, based solely on the provided context, there's no information indicating that L'Étoile Palace is a boutique hotel. The user might need more details or a different source to find boutique options in Paris.
-</think>
-
-Based strictly on the provided context:
-
-**No boutique hotels in Paris can be recommended.**
-
-The context only lists information about ""L'Étoile Palace"". There is **no mention** of this hotel being a boutique hotel, nor any other hotels. The context does not contain information about boutique hotels in Paris.",,122,308
-4,Find boutique hotels in Paris.,mistralai/Mistral-7B-Instruct-v0.2,2.743779300013557,2.7438135999254882,"Based on the context provided, there is one hotel, L'Étoile Palace, mentioned. However, the context does not specify if it is a boutique hotel or not. Therefore, I cannot provide a definitive answer with the given context alone.",,122,38
-5,What are the best hotels in Istanbul for business travellers?,meta-llama/Llama-3.1-8B-Instruct,1.2126258000498638,1.2126705000409856,"Unfortunately, the provided context does not contain information about the best hotels in Istanbul for business travelers. It only mentions one hotel, ""The Bosphorus Inn,"" with an average score of 0.77, but does not provide any details about its suitability for business travelers.",,108,43
-5,What are the best hotels in Istanbul for business travellers?,Qwen/Qwen2.5-1.5B-Instruct,1.7096157000632957,1.7096877000294626,The Bosphorus Inn has an average score of 0.77 based on the provided CONTEXT.,,108,14
-5,What are the best hotels in Istanbul for business travellers?,deepseek-ai/DeepSeek-R1,11.660978499916382,11.661057599936612,"<think>
-Hmm, the user is asking about the best hotels in Istanbul for business travelers. Let me look at the context provided. 
-
-The context only lists one hotel: The Bosphorus Inn with an average score of 0.77, retrieved via embedding. There's no mention of business amenities or suitability for business travelers. 
-
-I recall the instructions clearly state to never hallucinate facts not found in the context. Since the context doesn't specify any business-related features like conference rooms, business centers, or proximity to commercial districts, I can't assume this hotel caters to business travelers. 
-
-The user might expect multiple options, but the context only provides one hotel without relevant details. I should politely explain the limitation while acknowledging their specific need. 
-
-Perhaps the embedding retrieval focused on general quality rather than business features. The assistant should maintain transparency about the information gap while keeping the response helpful. 
-
-I'll structure the response to: 1) acknowledge the query, 2) state the limitation of available data, 3) mention the single hotel found without making claims about its business suitability. The tone should remain polite and precise as instructed.
-</think>
-
-Based solely on the provided context:
-
-I don't have specific information about hotels suitable for business travellers in Istanbul within the context provided. The context only lists one hotel:
-
-*   **The Bosphorus Inn** (avg_score=0.77)
-
-However, the context does not mention any features, amenities, or location details relevant to business travel (like proximity to business districts, conference facilities, business centers, etc.) for this hotel.
-
-Therefore, I cannot confidently recommend any hotels for business travellers based on the given information.",,108,263
-5,What are the best hotels in Istanbul for business travellers?,mistralai/Mistral-7B-Instruct-v0.2,3.5527222000528127,3.5529165000189096,"Based on the context provided, there is only one hotel mentioned, The Bosphorus Inn, with an average score of 0.77. The context does not specify if this hotel is particularly suitable for business travelers. Therefore, I cannot definitively say that The Bosphorus Inn is the best hotel in Istanbul for business travelers based on the given context alone.",,108,58
+You have reached the free monthly usage limit for groq. Subscribe to PRO to get 20x more included usage, or add pre-paid credits to your account.",0,
