@@ -13,7 +13,6 @@ Contents
 - Tests & evaluation
 - Troubleshooting & tips
 - Key files & where to look
-- Contributing
 
 Features
 - Neo4j-based knowledge graph for hotels, travellers, reviews, visa info.
@@ -234,11 +233,3 @@ License
 
 Acknowledgements
 - The project uses open-source components: Neo4j, HuggingFace, SentenceTransformers, spaCy, Streamlit, and others. See Graph_RAG/requirements.txt for details.
-
-Contact / authors
-- This repository was created by Team 49 (Team files and report included). For questions, open an issue in the repository.
-
-Thank you for checking out the International Hotel Booking Customer Assistant. If you want, I can also:
-- Draft a minimal Dockerfile for reproducible environments,
-- Provide a small unit-test matrix for CI,
-- Or prepare a quick-start notebook that walks through KG ingestion → indexing → query → answer.
